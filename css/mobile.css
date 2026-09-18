@@ -1,0 +1,65 @@
+/* ============================================================
+   납세자 모바일 화면 전용 스타일
+   ============================================================ */
+
+.mobile-container {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fff;
+  position: relative;
+}
+
+@media (min-width: 480px) {
+  .mobile-container { box-shadow: 0 0 24px rgba(0,0,0,0.08); }
+}
+
+.mobile-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--color-primary); color: #fff;
+  padding: 16px 20px 14px;
+}
+.mobile-header h1 { color: #fff; font-size: 18px; margin: 0 0 10px; text-align: center; }
+.progress-bar { height: 5px; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: #fff; border-radius: 3px; transition: width .25s ease; }
+.step-label { font-size: 12px; color: rgba(255,255,255,0.9); margin-top: 8px; text-align: center; }
+
+.step-content { padding: 24px 20px 110px; }
+.step-panel { display: none; }
+.step-panel.active { display: block; }
+
+.step-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: center;
+  background: transparent; pointer-events: none;
+}
+.step-nav-inner {
+  width: 100%; max-width: 480px;
+  background: #fff; border-top: 1px solid var(--color-border);
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  display: flex; gap: 10px;
+  pointer-events: auto;
+}
+.step-nav-inner .btn { flex: 1; }
+.step-nav-inner .btn-prev { flex: 0 0 30%; }
+
+/* 전자서명 캔버스 */
+.signature-pad-wrap {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  position: relative;
+  touch-action: none;
+  background: #FAFBFD;
+}
+.signature-pad-wrap.signed { border-style: solid; border-color: var(--color-primary); background: #fff; }
+.signature-pad-wrap canvas { width: 100%; height: 220px; display: block; touch-action: none; border-radius: var(--radius); }
+.signature-placeholder {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  color: var(--color-text-muted); pointer-events: none; font-size: 14px; text-align: center;
+}
+.signature-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+/* 완료 화면 */
+.complete-icon { width: 64px; height: 64px; border-radius: 50%; background: var(--color-success); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 40px auto 20px; }
+.reception-box { background: var(--color-primary-light); border-radius: var(--radius); padding: 20px; text-align: center; margin: 20px 0; }
+.reception-box .number { font-size: 24px; font-weight: 800; color: var(--color-primary-dark); letter-spacing: 1px; }

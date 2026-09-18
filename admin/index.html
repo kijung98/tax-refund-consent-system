@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국세환급금 동의서 관리자</title>
+<link rel="stylesheet" href="../css/common.css">
+<link rel="stylesheet" href="../css/admin.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/excel-export.js"></script>
+</head>
+<body>
+<div class="admin-layout">
+
+  <div class="admin-topbar">
+    <h1>국세환급금 동의서 관리</h1>
+    <div class="actions">
+      <a href="qr.html" class="btn btn-secondary btn-sm">QR 생성</a>
+      <button class="btn btn-primary btn-sm" id="excel-btn">엑셀 다운로드</button>
+      <button class="btn btn-secondary btn-sm" id="refresh-btn">새로고침</button>
+    </div>
+  </div>
+
+  <div class="search-panel">
+    <div class="field">
+      <label>통합검색 (접수번호/성명/배우자/전화)</label>
+      <input type="text" id="search-keyword" placeholder="홍길동">
+    </div>
+    <div class="field">
+      <label>처리상태</label>
+      <select id="search-status">
+        <option value="">전체</option>
+        <option value="신규">신규</option>
+        <option value="확인중">확인중</option>
+        <option value="확인완료">확인완료</option>
+        <option value="출력완료">출력완료</option>
+        <option value="처리완료">처리완료</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>시작일</label>
+      <input type="date" id="search-date-from">
+    </div>
+    <div class="field">
+      <label>종료일</label>
+      <input type="date" id="search-date-to">
+    </div>
+    <div class="field search-btn-wrap">
+      <button class="btn btn-primary btn-block" id="search-btn">검색</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>접수번호</th>
+          <th>신청유형</th>
+          <th>신청인</th>
+          <th>배우자</th>
+          <th>제출일</th>
+          <th>상태</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody id="result-tbody">
+        <tr><td colspan="7" class="empty-state">불러오는 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+let currentRows = [];
+
+function requestTypeLabel(v) {
+  return { '최초': '최초', '변경_지분율': '변경(지분율)', '변경_납세의무자': '변경(납세의무자)', '특례취소': '특례취소' }[v] || (v || '-');
+}
+
+async function loadList() {
+  const tbody = document.getElementById('result-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-state">불러오는 중...</td></tr>';
+
+  try {
+    const rows = await listSubmissions({
+      keyword: document.getElementById('search-keyword').value,
+      status: document.getElementById('search-status').value,
+      dateFrom: document.getElementById('search-date-from').value,
+      dateTo: document.getElementById('search-date-to').value
+    });
+    currentRows = rows;
+    renderTable(rows);
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">
+      목록을 불러오지 못했습니다.<br>
+      <span class="text-sm">js/config.js 의 Supabase 설정 값을 확인해 주세요.</span>
+    </td></tr>`;
+  }
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('result-tbody');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">조건에 맞는 접수 건이 없습니다.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(row => {
+    const f = (row.form_b_joint_home && row.form_b_joint_home[0]) || {};
+    return `
+      <tr>
+        <td>${row.reception_number}</td>
+        <td>${requestTypeLabel(f.request_type)}</td>
+        <td class="name-cell">${f.applicant_name || '-'}</td>
+        <td>${f.spouse_name || '-'}</td>
+        <td>${new Date(row.created_at).toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</td>
+        <td><span class="badge badge-${row.status}">${row.status}</span></td>
+        <td class="row-actions">
+          <a href="detail.html?id=${row.id}" class="btn btn-secondary btn-sm">상세</a>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+document.getElementById('search-btn').addEventListener('click', loadList);
+document.getElementById('refresh-btn').addEventListener('click', loadList);
+document.getElementById('search-keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadList(); });
+
+document.getElementById('excel-btn').addEventListener('click', () => {
+  exportSubmissionsToExcel(currentRows);
+});
+
+loadList();
+</script>
+</body>
+</html>

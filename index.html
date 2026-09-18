@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국세환급금 동의서 업무보조 시스템</title>
+<link rel="stylesheet" href="css/common.css">
+<style>
+  .landing-wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding: 60px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .landing-title { text-align: center; margin-bottom: 8px; }
+  .landing-sub { text-align: center; color: var(--color-text-muted); margin-bottom: 40px; font-size: 14px; }
+  .landing-btn {
+    display: block; padding: 22px 20px; border-radius: var(--radius);
+    text-decoration: none; margin-bottom: 16px; text-align: left;
+  }
+  .landing-btn-taxpayer { background: var(--color-primary); color: #fff; }
+  .landing-btn-taxpayer .landing-btn-title { color: #fff; }
+  .landing-btn-taxpayer .landing-btn-desc { color: rgba(255,255,255,0.85); }
+  .landing-btn-admin { background: #fff; border: 1px solid var(--color-border); color: var(--color-text); }
+  .landing-btn-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .landing-btn-desc { font-size: 13px; color: var(--color-text-muted); }
+</style>
+</head>
+<body>
+<div class="landing-wrap">
+  <h1 class="landing-title">국세환급금 동의서<br>업무보조 시스템</h1>
+  <p class="landing-sub">사용자 유형을 선택해 주세요</p>
+
+  <a href="taxpayer/index.html" class="landing-btn landing-btn-taxpayer">
+    <div class="landing-btn-title">납세자 화면 &rarr;</div>
+    <div class="landing-btn-desc">스마트폰으로 동의서를 작성합니다 (QR 접속시 자동 이동)</div>
+  </a>
+
+  <a href="admin/index.html" class="landing-btn landing-btn-admin">
+    <div class="landing-btn-title">관리자 화면 &rarr;</div>
+    <div class="landing-btn-desc">세무서 담당자용 — 접수 목록 조회·검색·출력</div>
+  </a>
+</div>
+
+<script>
+  // QR/URL에 ?ref=참조번호 가 붙어 접속한 경우, 납세자 화면으로 바로 넘겨준다
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  if (ref) {
+    window.location.href = 'taxpayer/index.html?ref=' + encodeURIComponent(ref);
+  }
+</script>
+</body>
+</html>

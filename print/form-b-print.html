@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공동명의 1주택자 특례신청서 - 출력</title>
+<link rel="stylesheet" href="../css/common.css">
+<link rel="stylesheet" href="../css/print.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/supabase-client.js"></script>
+</head>
+<body class="print-body">
+
+<div class="print-toolbar no-print">
+  <button class="btn btn-primary btn-sm" onclick="window.print()">인쇄 / PDF 저장</button>
+</div>
+
+<div class="print-page" id="print-root">
+  <p class="text-center text-muted">불러오는 중...</p>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const submissionId = params.get('id');
+
+function requestTypeCheck(current, target) {
+  return current === target ? 'checked' : '';
+}
+function checkbox(checked) {
+  return `<span class="print-checkbox ${checked ? 'checked' : ''}"></span>`;
+}
+
+async function load() {
+  const root = document.getElementById('print-root');
+  if (!submissionId) { root.innerHTML = '<p>접수 ID가 없습니다.</p>'; return; }
+
+  try {
+    const row = await getSubmissionDetail(submissionId);
+    const f = (row.form_b_joint_home && row.form_b_joint_home[0]) || {};
+    render(row, f);
+  } catch (err) {
+    console.error(err);
+    root.innerHTML = '<p>데이터를 불러오지 못했습니다. js/config.js 설정을 확인해 주세요.</p>';
+  }
+}
+
+function render(row, f) {
+  const today = new Date();
+  const rt = f.request_type || '';
+
+  document.getElementById('print-root').innerHTML = `
+    <div class="print-doc-no">■ 종합부동산세법 시행규칙 [별지 제2호의7서식] (접수번호: ${row.reception_number})</div>
+    <div class="print-title">(${today.getFullYear()}년도)종합부동산세 공동명의 1주택자 특례 (변경)신청서</div>
+
+    <table class="print-table">
+      <tr>
+        <td class="label-cell" rowspan="2">신청인</td>
+        <td class="label-cell">성명</td><td>${f.applicant_name || ''}</td>
+        <td class="label-cell">주민등록번호</td><td>${f.applicant_rrn || ''}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">주소</td><td colspan="3">${f.applicant_address || ''} (전화: ${f.applicant_phone || ''})</td>
+      </tr>
+    </table>
+
+    <table class="print-table">
+      <tr>
+        <td class="label-cell">① 신청유형</td>
+        <td>
+          ${checkbox(requestTypeCheck(rt,'최초'))} 최초　
+          ${checkbox(rt.startsWith('변경'))} 변경 (지분율 변경${checkbox(rt==='변경_지분율')}, 납세의무자 변경${checkbox(rt==='변경_납세의무자')})　
+          ${checkbox(requestTypeCheck(rt,'특례취소'))} 특례 취소
+        </td>
+      </tr>
+    </table>
+
+    <table class="print-table">
+      <tr>
+        <td class="label-cell">② 납세의무자<br>(지분율이 같거나 높은 사람)</td><td>${f.taxpayer_name || ''}</td>
+        <td class="label-cell">주민등록번호</td><td>${f.taxpayer_rrn || ''}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">③ 납세의무자의 배우자</td><td>${f.spouse_name || ''}</td>
+        <td class="label-cell">주민등록번호</td><td>${f.spouse_rrn || ''}</td>
+      </tr>
+    </table>
+
+    <table class="print-table">
+      <tr><th colspan="2">점검항목</th></tr>
+      <tr><td>1. 납세의무자의 공동주택에 대한 지분율이 배우자보다 높거나 같아야 합니다.</td><td style="width:60px; text-align:center;">${checkbox(f.check_ownership_ratio)}</td></tr>
+      <tr><td>2. 납세의무자의 배우자에게 공동소유 주택 외에 다른 주택(부속토지 포함)이 없어야 합니다.</td><td style="text-align:center;">${checkbox(f.check_spouse_no_other_house)}</td></tr>
+      <tr><td>3. 납세의무자의 배우자를 제외한 다른 세대원이 소유한 주택(부속토지 포함)이 없어야 합니다.</td><td style="text-align:center;">${checkbox(f.check_household_no_other_house)}</td></tr>
+    </table>
+
+    <p class="print-declaration">
+      「종합부동산세법」 제10조의2 및 같은 법 시행령 제5조의2에 따라 위와 같이 공동명의의 1주택자
+      납세의무 등에 관한 특례 적용을 (변경)신청합니다.<br>
+      위의 신청사항에 대해 배우자의 동의를 받아 공동명의 특례를 신청했음을 확인합니다.
+      ${checkbox(f.consent_confirmed)} 확인함
+    </p>
+
+    <div class="print-sign-block">
+      <div>
+        <div class="text-center" style="margin-bottom:14px;">
+          ${new Date(row.created_at).getFullYear()}년　${new Date(row.created_at).getMonth()+1}월　${new Date(row.created_at).getDate()}일
+        </div>
+        <div class="print-sign-line">
+          신청인
+          ${f.applicant_signature
+            ? `<img class="print-sign-img" src="${f.applicant_signature}">`
+            : '&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)&nbsp;&nbsp;&nbsp;&nbsp;'}
+        </div>
+      </div>
+    </div>
+
+    <div class="print-footer-office">세무서장 귀하</div>
+
+    <p class="print-note">
+      신청인 제출서류: 혼인관계증명서 1부 (원본 대조 필요) / 담당 공무원 확인사항: 부부 공동명의 주택의 건물등기사항증명서<br>
+      접수번호: ${row.reception_number} / 처리상태: ${row.status} / 시스템 출력일시: ${new Date().toLocaleString('ko-KR')}<br>
+      ※ 본 출력물은 온라인 동의서 시스템에서 생성된 참고용 서식입니다. 최종 법적 효력은 관할 세무서 확인 절차에 따릅니다.
+    </p>
+  `;
+}
+
+load();
+</script>
+</body>
+</html>

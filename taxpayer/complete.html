@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>제출 완료</title>
+<link rel="stylesheet" href="../css/common.css">
+<link rel="stylesheet" href="../css/mobile.css">
+</head>
+<body>
+<div class="mobile-container">
+  <div class="mobile-header"><h1>제출 완료</h1></div>
+
+  <div class="step-content" style="padding-top:10px;">
+    <div class="complete-icon">✓</div>
+    <p class="text-center" style="font-size:16px; font-weight:600;">동의서 제출이 완료되었습니다.</p>
+    <p class="text-center text-sm text-muted">아래 접수번호로 처리현황을 문의하실 수 있습니다.</p>
+
+    <div class="reception-box">
+      <div class="text-sm text-muted" style="margin-bottom:6px;">접수번호</div>
+      <div class="number" id="reception-number">-</div>
+      <div class="text-sm text-muted" style="margin-top:10px;" id="submitted-at"></div>
+    </div>
+
+    <button class="btn btn-secondary btn-block" id="copy-btn" style="margin-bottom:12px;">접수번호 복사</button>
+    <a href="index.html" class="btn btn-primary btn-block">처음으로</a>
+  </div>
+</div>
+
+<script>
+  const receptionNumber = sessionStorage.getItem('lastReceptionNumber') || '확인불가';
+  document.getElementById('reception-number').textContent = receptionNumber;
+  document.getElementById('submitted-at').textContent = '제출일시: ' + new Date().toLocaleString('ko-KR');
+
+  document.getElementById('copy-btn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(receptionNumber);
+      const btn = document.getElementById('copy-btn');
+      const original = btn.textContent;
+      btn.textContent = '복사되었습니다';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch (e) {
+      alert('복사에 실패했습니다. 접수번호를 직접 메모해 주세요: ' + receptionNumber);
+    }
+  });
+</script>
+</body>
+</html>

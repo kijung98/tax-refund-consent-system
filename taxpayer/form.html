@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>공동명의 1주택자 특례신청서 작성</title>
+<link rel="stylesheet" href="../css/common.css">
+<link rel="stylesheet" href="../css/mobile.css">
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/supabase-client.js"></script>
+</head>
+<body>
+<div class="mobile-container">
+
+  <div class="mobile-header">
+    <h1>공동명의 1주택자 특례신청서</h1>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:16.6%;"></div></div>
+    <div class="step-label" id="step-label">1 / 6 단계 - 신청유형</div>
+  </div>
+
+  <form id="main-form">
+  <div class="step-content">
+
+    <!-- STEP 1: 신청유형 + 국세청 안내 참고 -->
+    <div class="step-panel active" data-step="1">
+      <div class="info-box">
+        국세청은 2026년부터 부부 공동명의 1주택자에게 특례 신청/취소 중 유리한 쪽을
+        직접 계산해 모바일·우편으로 안내하고 있습니다. 안내를 받으셨다면 참고해 주세요.
+        (신청 접수기간: 매년 9.16.~9.30.)
+      </div>
+
+      <div class="field">
+        <label>국세청 안내를 받으셨나요? <span class="text-muted" style="font-weight:400;">(선택)</span></label>
+        <select id="nts_notice_result">
+          <option value="">해당 없음 / 선택 안함</option>
+          <option value="신청유리">특례 "신청"이 유리하다고 안내받음</option>
+          <option value="취소유리">특례 "취소"가 유리하다고 안내받음</option>
+          <option value="모름">안내를 받았으나 잘 모르겠음</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="required">신청유형을 선택해 주세요</label>
+        <div class="radio-group" id="request_type_group">
+          <label class="radio-item">
+            <input type="radio" name="request_type" value="최초">
+            <span><span class="item-title">최초 신청</span><br><span class="item-desc">처음으로 공동명의 1주택자 특례를 신청합니다</span></span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="request_type" value="변경_지분율">
+            <span><span class="item-title">변경 (지분율 변경)</span><br><span class="item-desc">이미 신청했고, 지분율이 바뀌었습니다</span></span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="request_type" value="변경_납세의무자">
+            <span><span class="item-title">변경 (납세의무자 변경)</span><br><span class="item-desc">이미 신청했고, 납세의무자를 바꾸려 합니다</span></span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="request_type" value="특례취소">
+            <span><span class="item-title">특례 취소</span><br><span class="item-desc">기존 특례 신청을 취소하려 합니다</span></span>
+          </label>
+        </div>
+        <div class="error-msg">신청유형을 선택해 주세요.</div>
+      </div>
+    </div>
+
+    <!-- STEP 2: 신청인(본인) 정보 -->
+    <div class="step-panel" data-step="2">
+      <div class="info-box">신청인은 원칙적으로 부부 중 <b>주택 지분율이 높거나 같은 분</b>입니다.</div>
+
+      <div class="field">
+        <label class="required">신청인 성명</label>
+        <input type="text" id="applicant_name" placeholder="예: 홍길동">
+        <div class="error-msg">성명을 입력해 주세요.</div>
+      </div>
+
+      <div class="field">
+        <label class="required">신청인 주민등록번호</label>
+        <input type="text" id="applicant_rrn" placeholder="900101-1234567" maxlength="14">
+        <div class="hint">숫자 13자리 (예: 900101-1234567)</div>
+        <div class="error-msg">주민등록번호 형식을 확인해 주세요.</div>
+      </div>
+
+      <div class="field">
+        <label class="required">주소</label>
+        <input type="text" id="applicant_address" placeholder="예: 인천광역시 ○○구 ○○로 12">
+        <div class="error-msg">주소를 입력해 주세요.</div>
+      </div>
+
+      <div class="field">
+        <label class="required">전화번호</label>
+        <input type="tel" id="applicant_phone" placeholder="010-1234-5678" maxlength="13">
+        <div class="error-msg">전화번호 형식을 확인해 주세요.</div>
+      </div>
+    </div>
+
+    <!-- STEP 3: 납세의무자 및 배우자 정보 -->
+    <div class="step-panel" data-step="3">
+      <div class="checkbox-item" id="same-as-applicant-wrap" style="margin-bottom:20px;">
+        <input type="checkbox" id="same_as_applicant" checked>
+        <span>
+          <span class="item-title">신청인 본인이 납세의무자입니다</span><br>
+          <span class="item-desc">(일반적인 경우입니다. 다른 경우에만 체크 해제)</span>
+        </span>
+      </div>
+
+      <div id="taxpayer-fields">
+        <div class="field">
+          <label class="required">납세의무자 성명</label>
+          <input type="text" id="taxpayer_name" placeholder="예: 홍길동">
+          <div class="error-msg">납세의무자 성명을 입력해 주세요.</div>
+        </div>
+        <div class="field">
+          <label class="required">납세의무자 주민등록번호</label>
+          <input type="text" id="taxpayer_rrn" placeholder="900101-1234567" maxlength="14">
+          <div class="error-msg">주민등록번호 형식을 확인해 주세요.</div>
+        </div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--color-border); margin:22px 0;">
+
+      <div class="field">
+        <label class="required">배우자 성명</label>
+        <input type="text" id="spouse_name" placeholder="예: 김영희">
+        <div class="error-msg">배우자 성명을 입력해 주세요.</div>
+      </div>
+      <div class="field">
+        <label class="required">배우자 주민등록번호</label>
+        <input type="text" id="spouse_rrn" placeholder="900101-2345678" maxlength="14">
+        <div class="error-msg">주민등록번호 형식을 확인해 주세요.</div>
+      </div>
+    </div>
+
+    <!-- STEP 4: 점검항목 -->
+    <div class="step-panel" data-step="4">
+      <div class="info-box">
+        특례 적용을 받으려면 아래 3가지 요건을 <b>모두</b> 충족해야 합니다.
+        (신청유형이 "특례 취소"인 경우 선택하지 않으셔도 됩니다)
+      </div>
+
+      <label class="checkbox-item" style="margin-bottom:12px;">
+        <input type="checkbox" id="check_ownership_ratio">
+        <span class="item-desc">납세의무자의 공동주택에 대한 지분율이 배우자보다 높거나 같습니다</span>
+      </label>
+      <label class="checkbox-item" style="margin-bottom:12px;">
+        <input type="checkbox" id="check_spouse_no_other_house">
+        <span class="item-desc">납세의무자의 배우자에게 공동소유 주택 외에 다른 주택(부속토지 포함)이 없습니다</span>
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="check_household_no_other_house">
+        <span class="item-desc">납세의무자의 배우자를 제외한 다른 세대원이 소유한 주택(부속토지 포함)이 없습니다</span>
+      </label>
+      <div class="error-msg" id="check-error-msg" style="display:none; margin-top:10px;">
+        신청유형이 "특례 취소"가 아닌 경우, 3개 항목을 모두 확인해 주셔야 합니다.
+      </div>
+    </div>
+
+    <!-- STEP 5: 배우자 동의 확인 + 서명 -->
+    <div class="step-panel" data-step="5">
+      <div class="card" style="margin-bottom:20px;">
+        <p class="text-sm" style="margin:0;">
+          "위의 신청사항에 대해 배우자의 동의를 받아 공동명의 특례를 신청했음을 확인합니다."
+        </p>
+      </div>
+
+      <label class="checkbox-item" style="margin-bottom:24px;">
+        <input type="checkbox" id="consent_confirmed">
+        <span class="item-title">배우자의 동의를 받았음을 확인합니다</span>
+      </label>
+      <div class="error-msg" id="consent-error-msg" style="display:none; margin-bottom:20px;">
+        배우자 동의 확인이 필요합니다.
+      </div>
+
+      <label style="font-weight:600; font-size:14px; display:block; margin-bottom:8px;">신청인 서명</label>
+      <div class="signature-pad-wrap" id="signature-wrap">
+        <span class="signature-placeholder">여기에 손가락으로 서명해 주세요</span>
+        <canvas id="signature-canvas"></canvas>
+      </div>
+      <div class="signature-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="clear-signature-btn">다시 쓰기</button>
+      </div>
+      <div class="error-msg" id="signature-error-msg" style="display:none;">서명을 입력해 주세요.</div>
+    </div>
+
+    <!-- STEP 6: 최종 확인 -->
+    <div class="step-panel" data-step="6">
+      <div class="info-box">아래 내용을 확인하신 후 제출해 주세요.</div>
+      <div class="card">
+        <div id="summary-list"></div>
+      </div>
+      <div class="error-box" id="submit-error" style="display:none; margin-top:16px;"></div>
+    </div>
+
+  </div>
+  </form>
+
+  <div class="step-nav">
+    <div class="step-nav-inner">
+      <button type="button" class="btn btn-secondary btn-prev" id="prev-btn" style="display:none;">이전</button>
+      <button type="button" class="btn btn-primary btn-block" id="next-btn">다음</button>
+      <button type="button" class="btn btn-primary btn-block" id="submit-btn" style="display:none;">제출하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL_STEPS = 6;
+let currentStep = 1;
+
+const stepLabels = {
+  1: '신청유형', 2: '신청인 정보', 3: '납세의무자·배우자', 4: '점검항목', 5: '동의·서명', 6: '최종확인'
+};
+
+function showError(fieldEl, msgEl, show) {
+  const wrap = fieldEl.closest('.field') || fieldEl.parentElement;
+  if (msgEl) msgEl.style.display = show ? 'block' : 'none';
+  if (wrap) wrap.classList.toggle('has-error', show);
+}
+
+function isValidRRN(v) {
+  return /^\d{6}-?\d{7}$/.test((v || '').trim());
+}
+function isValidPhone(v) {
+  return /^01[0-9]-?\d{3,4}-?\d{4}$/.test((v || '').trim());
+}
+
+/* ---------- STEP 검증 ---------- */
+function validateStep(step) {
+  let ok = true;
+
+  if (step === 1) {
+    const checked = document.querySelector('input[name="request_type"]:checked');
+    const errEl = document.querySelector('#request_type_group').closest('.field').querySelector('.error-msg');
+    if (!checked) { errEl.style.display = 'block'; ok = false; }
+    else { errEl.style.display = 'none'; }
+  }
+
+  if (step === 2) {
+    ok = validateTextField('applicant_name', v => v.trim().length > 0) && ok;
+    ok = validateTextField('applicant_rrn', isValidRRN) && ok;
+    ok = validateTextField('applicant_address', v => v.trim().length > 0) && ok;
+    ok = validateTextField('applicant_phone', isValidPhone) && ok;
+  }
+
+  if (step === 3) {
+    const same = document.getElementById('same_as_applicant').checked;
+    if (!same) {
+      ok = validateTextField('taxpayer_name', v => v.trim().length > 0) && ok;
+      ok = validateTextField('taxpayer_rrn', isValidRRN) && ok;
+    }
+    ok = validateTextField('spouse_name', v => v.trim().length > 0) && ok;
+    ok = validateTextField('spouse_rrn', isValidRRN) && ok;
+  }
+
+  if (step === 4) {
+    const requestType = document.querySelector('input[name="request_type"]:checked')?.value;
+    const isCancel = requestType === '특례취소';
+    const allChecked = document.getElementById('check_ownership_ratio').checked
+      && document.getElementById('check_spouse_no_other_house').checked
+      && document.getElementById('check_household_no_other_house').checked;
+    const errEl = document.getElementById('check-error-msg');
+    if (!isCancel && !allChecked) { errEl.style.display = 'block'; ok = false; }
+    else { errEl.style.display = 'none'; }
+  }
+
+  if (step === 5) {
+    const consentEl = document.getElementById('consent_confirmed');
+    const consentErr = document.getElementById('consent-error-msg');
+    if (!consentEl.checked) { consentErr.style.display = 'block'; ok = false; }
+    else { consentErr.style.display = 'none'; }
+
+    const sigErr = document.getElementById('signature-error-msg');
+    if (signaturePad.isEmpty()) { sigErr.style.display = 'block'; ok = false; }
+    else { sigErr.style.display = 'none'; }
+  }
+
+  return ok;
+}
+
+function validateTextField(id, testFn) {
+  const el = document.getElementById(id);
+  const field = el.closest('.field');
+  const errEl = field.querySelector('.error-msg');
+  const valid = testFn(el.value);
+  field.classList.toggle('has-error', !valid);
+  if (errEl) errEl.style.display = valid ? 'none' : 'block';
+  return valid;
+}
+
+/* ---------- 단계 이동 ---------- */
+function goToStep(step) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.step-panel[data-step="${step}"]`).classList.add('active');
+
+  document.getElementById('progress-fill').style.width = (step / TOTAL_STEPS * 100) + '%';
+  document.getElementById('step-label').textContent = `${step} / ${TOTAL_STEPS} 단계 - ${stepLabels[step]}`;
+
+  document.getElementById('prev-btn').style.display = step === 1 ? 'none' : 'inline-block';
+  document.getElementById('next-btn').style.display = step === TOTAL_STEPS ? 'none' : 'block';
+  document.getElementById('submit-btn').style.display = step === TOTAL_STEPS ? 'block' : 'none';
+
+  if (step === 6) renderSummary();
+
+  window.scrollTo(0, 0);
+  currentStep = step;
+}
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  if (!validateStep(currentStep)) return;
+  if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+});
+document.getElementById('prev-btn').addEventListener('click', () => {
+  if (currentStep > 1) goToStep(currentStep - 1);
+});
+
+/* ---------- 납세의무자 = 신청인 동일 처리 ---------- */
+const sameCheckbox = document.getElementById('same_as_applicant');
+const taxpayerFieldsWrap = document.getElementById('taxpayer-fields');
+function syncTaxpayerFields() {
+  if (sameCheckbox.checked) {
+    taxpayerFieldsWrap.style.display = 'none';
+  } else {
+    taxpayerFieldsWrap.style.display = 'block';
+  }
+}
+sameCheckbox.addEventListener('change', syncTaxpayerFields);
+syncTaxpayerFields();
+
+/* ---------- 전자서명 ---------- */
+const canvas = document.getElementById('signature-canvas');
+const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#1B1B1B' });
+
+function resizeCanvas() {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  const data = signaturePad.toData();
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  canvas.getContext('2d').scale(ratio, ratio);
+  signaturePad.clear();
+  if (data && data.length) signaturePad.fromData(data);
+}
+window.addEventListener('resize', resizeCanvas);
+setTimeout(resizeCanvas, 50);
+
+signaturePad.addEventListener('beginStroke', () => {
+  document.getElementById('signature-wrap').classList.add('signed');
+  document.querySelector('#signature-wrap .signature-placeholder').style.display = 'none';
+});
+
+document.getElementById('clear-signature-btn').addEventListener('click', () => {
+  signaturePad.clear();
+  document.getElementById('signature-wrap').classList.remove('signed');
+  document.querySelector('#signature-wrap .signature-placeholder').style.display = 'block';
+});
+
+/* ---------- 요약 렌더링 ---------- */
+function requestTypeLabel(v) {
+  return { '최초': '최초 신청', '변경_지분율': '변경(지분율 변경)', '변경_납세의무자': '변경(납세의무자 변경)', '특례취소': '특례 취소' }[v] || v;
+}
+
+function renderSummary() {
+  const p = collectPayload();
+  const rows = [
+    ['신청유형', requestTypeLabel(p.request_type)],
+    ['신청인', p.applicant_name],
+    ['신청인 주민등록번호', p.applicant_rrn],
+    ['납세의무자', p.taxpayer_name],
+    ['배우자', p.spouse_name],
+    ['점검항목 충족', (p.check_ownership_ratio && p.check_spouse_no_other_house && p.check_household_no_other_house) ? '3개 모두 충족' : (p.request_type === '특례취소' ? '해당없음(취소)' : '일부 미충족')],
+    ['배우자 동의확인', p.consent_confirmed ? '확인함' : '미확인'],
+    ['서명', signaturePad.isEmpty() ? '없음' : '완료']
+  ];
+  document.getElementById('summary-list').innerHTML = rows.map(([label, value]) =>
+    `<div class="summary-row"><span class="label">${label}</span><span class="value">${value}</span></div>`
+  ).join('');
+}
+
+/* ---------- 데이터 수집 ---------- */
+function collectPayload() {
+  const same = document.getElementById('same_as_applicant').checked;
+  const applicantName = document.getElementById('applicant_name').value.trim();
+  const applicantRrn = document.getElementById('applicant_rrn').value.trim();
+
+  return {
+    applicant_name: applicantName,
+    applicant_rrn: applicantRrn,
+    applicant_address: document.getElementById('applicant_address').value.trim(),
+    applicant_phone: document.getElementById('applicant_phone').value.trim(),
+    request_type: document.querySelector('input[name="request_type"]:checked')?.value || '',
+    taxpayer_name: same ? applicantName : document.getElementById('taxpayer_name').value.trim(),
+    taxpayer_rrn: same ? applicantRrn : document.getElementById('taxpayer_rrn').value.trim(),
+    spouse_name: document.getElementById('spouse_name').value.trim(),
+    spouse_rrn: document.getElementById('spouse_rrn').value.trim(),
+    check_ownership_ratio: document.getElementById('check_ownership_ratio').checked,
+    check_spouse_no_other_house: document.getElementById('check_spouse_no_other_house').checked,
+    check_household_no_other_house: document.getElementById('check_household_no_other_house').checked,
+    nts_notice_result: document.getElementById('nts_notice_result').value,
+    consent_confirmed: document.getElementById('consent_confirmed').checked,
+    applicant_signature: signaturePad.isEmpty() ? null : signaturePad.toDataURL('image/png')
+  };
+}
+
+/* ---------- 제출 ---------- */
+document.getElementById('submit-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('submit-btn');
+  const errBox = document.getElementById('submit-error');
+  errBox.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '제출 중...';
+
+  try {
+    const payload = collectPayload();
+    const receptionNumber = await submitFormB(payload);
+    sessionStorage.setItem('lastReceptionNumber', receptionNumber);
+    window.location.href = 'complete.html';
+  } catch (err) {
+    console.error(err);
+    errBox.textContent = '제출 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '제출하기';
+  }
+});
+
+goToStep(1);
+</script>
+</body>
+</html>

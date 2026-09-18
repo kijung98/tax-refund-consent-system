@@ -1,0 +1,122 @@
+/* ============================================================
+   공통 스타일 - 국세환급금 동의서 시스템
+   디자인 방향: 공공기관 업무용 + 깔끔함 + 신뢰감 (화이트 + 블루)
+   ============================================================ */
+
+:root {
+  --color-primary: #1B4FA0;
+  --color-primary-dark: #123B7A;
+  --color-primary-light: #EAF1FB;
+  --color-bg: #FFFFFF;
+  --color-page-bg: #F5F7FA;
+  --color-text: #1B1B1B;
+  --color-text-muted: #6B7280;
+  --color-border: #E2E5EA;
+  --color-danger: #D64545;
+  --color-danger-bg: #FDEDED;
+  --color-success: #1E8E5A;
+  --radius: 10px;
+  --font-base: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-base);
+  color: var(--color-text);
+  background: var(--color-page-bg);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 { margin: 0 0 12px; color: var(--color-primary-dark); }
+p { margin: 0 0 10px; }
+a { color: var(--color-primary); }
+
+/* 버튼 */
+.btn {
+  display: inline-block;
+  padding: 14px 22px;
+  border-radius: var(--radius);
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  font-family: inherit;
+  transition: background .15s;
+}
+.btn-primary { background: var(--color-primary); color: #fff; }
+.btn-primary:hover, .btn-primary:active { background: var(--color-primary-dark); }
+.btn-secondary { background: #fff; color: var(--color-primary); border: 1px solid var(--color-primary); }
+.btn-danger { background: #fff; color: var(--color-danger); border: 1px solid var(--color-danger); }
+.btn-block { display: block; width: 100%; }
+.btn-sm { padding: 8px 14px; font-size: 13px; }
+.btn:disabled { background: #C6CCD6 !important; color: #fff !important; border: none !important; cursor: not-allowed; }
+
+/* 폼 요소 */
+.field { margin-bottom: 18px; }
+.field label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+.field input[type=text],
+.field input[type=tel],
+.field input[type=date],
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-family: inherit;
+  background: #fff;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+.field .required::after { content: ' *'; color: var(--color-danger); }
+.field .hint { font-size: 12px; color: var(--color-text-muted); margin-top: 4px; }
+.field .error-msg { color: var(--color-danger); font-size: 13px; margin-top: 5px; display: none; }
+.field.has-error input,
+.field.has-error select { border-color: var(--color-danger); background: var(--color-danger-bg); }
+.field.has-error .error-msg { display: block; }
+
+.radio-group { display: flex; flex-direction: column; gap: 10px; }
+.radio-item, .checkbox-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px; border: 1px solid var(--color-border);
+  border-radius: var(--radius); cursor: pointer;
+}
+.radio-item input, .checkbox-item input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; }
+.radio-item.selected, .checkbox-item.checked { border-color: var(--color-primary); background: var(--color-primary-light); }
+.radio-item .item-title, .checkbox-item .item-title { font-weight: 600; font-size: 15px; }
+.radio-item .item-desc, .checkbox-item .item-desc { font-size: 13px; color: var(--color-text-muted); margin-top: 3px; }
+
+/* 카드/박스 */
+.card { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.info-box { background: var(--color-primary-light); border-radius: var(--radius); padding: 14px 16px; font-size: 14px; color: var(--color-primary-dark); margin-bottom: 18px; }
+.warn-box { background: #FFF4E0; border-radius: var(--radius); padding: 14px 16px; font-size: 14px; color: #8A5300; margin-bottom: 18px; }
+.error-box { background: var(--color-danger-bg); border-radius: var(--radius); padding: 14px 16px; font-size: 14px; color: var(--color-danger); margin-bottom: 18px; }
+
+/* 요약 행 */
+.summary-row { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--color-border); font-size: 14px; gap: 12px; }
+.summary-row:last-child { border-bottom: none; }
+.summary-row .label { color: var(--color-text-muted); flex-shrink: 0; }
+.summary-row .value { font-weight: 600; text-align: right; }
+
+/* 상태 뱃지 */
+.badge { display: inline-block; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.badge-신규 { background: #E8F0FE; color: #1B4FA0; }
+.badge-확인중 { background: #FFF4E0; color: #B8720A; }
+.badge-확인완료 { background: #E6F6EE; color: #1E8E5A; }
+.badge-출력완료 { background: #EDE7F9; color: #6A3FBF; }
+.badge-처리완료 { background: #E9ECEF; color: #495057; }
+
+.text-muted { color: var(--color-text-muted); }
+.text-center { text-align: center; }
+.text-sm { font-size: 13px; }
+.mt-0 { margin-top: 0; }
+.mb-0 { margin-bottom: 0; }

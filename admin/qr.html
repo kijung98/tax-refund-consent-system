@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR 코드 생성</title>
+<link rel="stylesheet" href="../css/common.css">
+<link rel="stylesheet" href="../css/admin.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+<div class="admin-layout" style="max-width:560px;">
+
+  <div class="detail-header">
+    <div>
+      <a href="index.html" class="text-sm">&larr; 목록으로</a>
+      <h1 style="margin-top:6px;">QR 코드 생성</h1>
+    </div>
+  </div>
+
+  <div class="detail-section">
+    <p class="text-sm text-muted" style="margin-bottom:16px;">
+      납세자에게 안내할 링크의 QR코드를 생성합니다. 참조번호(선택)를 입력하면
+      링크에 자동으로 포함되어, 납세자가 접속 시 별도 입력 없이 확인할 수 있습니다.
+    </p>
+
+    <div class="field">
+      <label>납세자 접속 페이지 기본 주소</label>
+      <input type="text" id="base-url" placeholder="https://your-github-id.github.io/tax-refund-consent/taxpayer/index.html">
+      <div class="hint">GitHub Pages 배포 후 주소를 이곳에 입력하세요. (README 참고)</div>
+    </div>
+
+    <div class="field">
+      <label>접수 참조번호 (선택)</label>
+      <input type="text" id="ref-input" placeholder="예: 세무1과-0001">
+    </div>
+
+    <button class="btn btn-primary btn-block" id="generate-btn">QR 생성</button>
+  </div>
+
+  <div class="detail-section text-center" id="qr-result" style="display:none;">
+    <canvas id="qr-canvas"></canvas>
+    <p class="text-sm" id="final-url" style="word-break:break-all; margin-top:12px;"></p>
+    <button class="btn btn-secondary btn-sm" id="download-qr-btn">QR 이미지 저장</button>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('generate-btn').addEventListener('click', () => {
+  const base = document.getElementById('base-url').value.trim();
+  const ref = document.getElementById('ref-input').value.trim();
+
+  if (!base) { alert('납세자 접속 페이지 주소를 입력해 주세요.'); return; }
+
+  const url = ref ? `${base}?ref=${encodeURIComponent(ref)}` : base;
+
+  const canvas = document.getElementById('qr-canvas');
+  QRCode.toCanvas(canvas, url, { width: 260, margin: 2 }, function (error) {
+    if (error) { console.error(error); alert('QR 생성 중 오류가 발생했습니다.'); return; }
+    document.getElementById('qr-result').style.display = 'block';
+    document.getElementById('final-url').textContent = url;
+  });
+});
+
+document.getElementById('download-qr-btn').addEventListener('click', () => {
+  const canvas = document.getElementById('qr-canvas');
+  const link = document.createElement('a');
+  link.download = 'qr-code.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+</script>
+</body>
+</html>
