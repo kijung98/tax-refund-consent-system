@@ -56,12 +56,38 @@ async function submitFormB(payload) {
 }
 
 /**
+ * FORM A(국세환급금양도요구서) 제출
+ * @param {object} payload - form_a_transfer 테이블 컬럼과 동일한 키를 가진 객체
+ * @returns {string} 접수번호
+ */
+async function submitFormA(payload) {
+  const receptionNumber = await generateReceptionNumber();
+
+  const { data: submission, error: subErr } = await supabaseClient
+    .from('submissions')
+    .insert({ reception_number: receptionNumber, status: '신규' })
+    .select()
+    .single();
+
+  if (subErr) throw subErr;
+
+  const { error: formErr } = await supabaseClient
+    .from('form_a_transfer')
+    .insert({ submission_id: submission.id, ...payload });
+
+  if (formErr) throw formErr;
+
+  return receptionNumber;
+}
+
+/**
  * 관리자: 제출 목록 조회 (검색/필터 포함)
+ * FORM A, FORM B 를 모두 함께 가져온다. (한 접수건에는 둘 중 하나만 존재)
  */
 async function listSubmissions({ keyword = '', status = '', dateFrom = '', dateTo = '' } = {}) {
   let query = supabaseClient
     .from('submissions')
-    .select('*, form_b_joint_home(*)')
+    .select('*, form_b_joint_home(*), form_a_transfer(*)')
     .order('created_at', { ascending: false });
 
   if (status) query = query.eq('status', status);
@@ -75,26 +101,39 @@ async function listSubmissions({ keyword = '', status = '', dateFrom = '', dateT
 
   const kw = keyword.trim();
   return data.filter(row => {
-    const f = row.form_b_joint_home?.[0];
+    const b = row.form_b_joint_home?.[0];
+    const a = row.form_a_transfer?.[0];
     const inReception = row.reception_number.includes(kw);
-    if (!f) return inReception;
-    return (
-      inReception ||
-      (f.applicant_name && f.applicant_name.includes(kw)) ||
-      (f.spouse_name && f.spouse_name.includes(kw)) ||
-      (f.taxpayer_name && f.taxpayer_name.includes(kw)) ||
-      (f.applicant_phone && f.applicant_phone.includes(kw))
-    );
+    if (inReception) return true;
+
+    if (b) {
+      if (
+        (b.applicant_name && b.applicant_name.includes(kw)) ||
+        (b.spouse_name && b.spouse_name.includes(kw)) ||
+        (b.taxpayer_name && b.taxpayer_name.includes(kw)) ||
+        (b.applicant_phone && b.applicant_phone.includes(kw))
+      ) return true;
+    }
+
+    if (a) {
+      if (
+        (a.transferor_name && a.transferor_name.includes(kw)) ||
+        (a.transferee_name && a.transferee_name.includes(kw)) ||
+        (a.transferor_phone && a.transferor_phone.includes(kw))
+      ) return true;
+    }
+
+    return false;
   });
 }
 
 /**
- * 관리자: 단일 접수건 상세 조회
+ * 관리자: 단일 접수건 상세 조회 (FORM A/B 모두 포함해서 가져옴)
  */
 async function getSubmissionDetail(submissionId) {
   const { data, error } = await supabaseClient
     .from('submissions')
-    .select('*, form_b_joint_home(*)')
+    .select('*, form_b_joint_home(*), form_a_transfer(*)')
     .eq('id', submissionId)
     .single();
   if (error) throw error;

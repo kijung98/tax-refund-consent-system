@@ -58,9 +58,9 @@
       <thead>
         <tr>
           <th>접수번호</th>
-          <th>신청유형</th>
-          <th>신청인</th>
-          <th>배우자</th>
+          <th>서식종류</th>
+          <th>신청인(양도인 등)</th>
+          <th>상대방(배우자 등)</th>
           <th>제출일</th>
           <th>상태</th>
           <th>비고</th>
@@ -111,13 +111,19 @@ function renderTable(rows) {
   }
 
   tbody.innerHTML = rows.map(row => {
-    const f = (row.form_b_joint_home && row.form_b_joint_home[0]) || {};
+    const b = (row.form_b_joint_home && row.form_b_joint_home[0]) || null;
+    const a = (row.form_a_transfer && row.form_a_transfer[0]) || null;
+
+    const formTypeLabel = b ? '공동명의 특례신청서' : (a ? '양도요구서' : '-');
+    const mainName = b ? (b.applicant_name || '-') : (a ? (a.transferor_name || '-') : '-');
+    const subName = b ? (b.spouse_name || '-') : (a ? (a.transferee_name || '-') : '-');
+
     return `
       <tr>
         <td>${row.reception_number}</td>
-        <td>${requestTypeLabel(f.request_type)}</td>
-        <td class="name-cell">${f.applicant_name || '-'}</td>
-        <td>${f.spouse_name || '-'}</td>
+        <td>${formTypeLabel}</td>
+        <td class="name-cell">${mainName}</td>
+        <td>${subName}</td>
         <td>${new Date(row.created_at).toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</td>
         <td><span class="badge badge-${row.status}">${row.status}</span></td>
         <td class="row-actions">

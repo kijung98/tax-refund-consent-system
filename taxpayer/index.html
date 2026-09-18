@@ -6,6 +6,17 @@
 <title>국세환급금 동의서 작성</title>
 <link rel="stylesheet" href="../css/common.css">
 <link rel="stylesheet" href="../css/mobile.css">
+<style>
+  .form-select-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius);
+    margin-bottom: 12px; text-decoration: none; color: var(--color-text);
+  }
+  .form-select-item.available { border-color: var(--color-primary); background: var(--color-primary-light); }
+  .form-select-item.disabled { opacity: 0.55; }
+  .form-select-item .name { font-weight: 700; font-size: 14px; }
+  .form-select-item .status { font-size: 13px; font-weight: 700; white-space: nowrap; margin-left: 10px; }
+</style>
 </head>
 <body>
 <div class="mobile-container">
@@ -16,57 +27,39 @@
   <div class="step-content">
     <div class="info-box">
       스마트폰에서 <b>약 5분</b>이면 작성하실 수 있습니다.<br>
-      작성 전 아래 정보를 미리 준비해 주세요.
+      아래에서 작성하실 서식을 선택해 주세요.
     </div>
 
-    <div class="card" style="margin-bottom:16px;">
-      <h3 style="font-size:15px;">준비물</h3>
-      <ul style="margin:0; padding-left:18px; font-size:14px; color:var(--color-text-muted);">
-        <li>본인(신청인) 성명 / 주민등록번호</li>
-        <li>배우자 성명 / 주민등록번호</li>
-        <li>본인 연락처 · 주소</li>
-      </ul>
-    </div>
-
-    <div class="card" style="margin-bottom:16px;">
-      <h3 style="font-size:15px;">작성 가능한 서식</h3>
-      <p class="text-sm text-muted" style="margin-bottom:10px;">
-        현재 온라인 작성이 가능한 서식은 아래와 같습니다.
-      </p>
-      <div class="summary-row">
-        <span class="label">종합부동산세 공동명의 1주택자 특례(변경)신청서</span>
-        <span class="value" style="color:var(--color-success);">작성 가능</span>
-      </div>
-      <div class="summary-row">
-        <span class="label">국세환급금양도요구서</span>
-        <span class="value text-muted">준비 중</span>
-      </div>
-      <div class="summary-row">
-        <span class="label">국세환급금 충당청구(동의)서</span>
-        <span class="value text-muted">준비 중</span>
-      </div>
-    </div>
-
-    <div id="ref-info" class="info-box" style="display:none;">
+    <div id="ref-info" class="warn-box" style="display:none;">
       담당 세무서 접수 참조번호: <b id="ref-display"></b>
     </div>
-  </div>
 
-  <div class="step-nav">
-    <div class="step-nav-inner">
-      <a href="form.html" class="btn btn-primary btn-block" id="start-btn">작성 시작하기</a>
+    <a href="form.html" class="form-select-item available" id="link-form-b">
+      <span class="name">종합부동산세<br>공동명의 1주택자 특례(변경)신청서</span>
+      <span class="status" style="color:var(--color-primary-dark);">작성하기 &rarr;</span>
+    </a>
+
+    <a href="form-a.html" class="form-select-item available" id="link-form-a">
+      <span class="name">국세환급금양도요구서<br><span class="text-muted" style="font-weight:400;">(양도인·양수인 2인 서명 필요)</span></span>
+      <span class="status" style="color:var(--color-primary-dark);">작성하기 &rarr;</span>
+    </a>
+
+    <div class="form-select-item disabled">
+      <span class="name">국세환급금 충당청구(동의)서</span>
+      <span class="status text-muted">준비 중</span>
     </div>
   </div>
 </div>
 
 <script>
-  // QR 스캔/링크 접속시 ?ref=참조번호 형태로 전달된 경우 처리
+  // QR 스캔/링크 접속시 ?ref=참조번호 형태로 전달된 경우, 다음 화면까지 전달
   const params = new URLSearchParams(window.location.search);
   const ref = params.get('ref');
   if (ref) {
     document.getElementById('ref-info').style.display = 'block';
     document.getElementById('ref-display').textContent = ref;
-    document.getElementById('start-btn').href = 'form.html?ref=' + encodeURIComponent(ref);
+    document.getElementById('link-form-b').href = 'form.html?ref=' + encodeURIComponent(ref);
+    document.getElementById('link-form-a').href = 'form-a.html?ref=' + encodeURIComponent(ref);
   }
 </script>
 </body>

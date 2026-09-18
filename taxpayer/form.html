@@ -300,6 +300,11 @@ function goToStep(step) {
   document.getElementById('next-btn').style.display = step === TOTAL_STEPS ? 'none' : 'block';
   document.getElementById('submit-btn').style.display = step === TOTAL_STEPS ? 'block' : 'none';
 
+  if (step === 5) {
+    // 서명란이 이제서야 화면에 보이므로, 이 시점에 캔버스 크기를 다시 계산해야
+    // 실제로 그림이 그려진다. (숨겨진 상태에서 미리 계산하면 크기가 0으로 고정됨)
+    setTimeout(resizeCanvas, 0);
+  }
   if (step === 6) renderSummary();
 
   window.scrollTo(0, 0);
@@ -332,6 +337,11 @@ const canvas = document.getElementById('signature-canvas');
 const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#1B1B1B' });
 
 function resizeCanvas() {
+  // 서명 단계(5단계)가 아직 화면에 보이지 않는 상태(display:none)라면
+  // offsetWidth/offsetHeight가 0으로 잡혀서 캔버스가 그려지지 않는 버그가 있었음.
+  // 보이지 않는 상태에서는 크기 계산을 건너뛴다.
+  if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return;
+
   const ratio = Math.max(window.devicePixelRatio || 1, 1);
   const data = signaturePad.toData();
   canvas.width = canvas.offsetWidth * ratio;

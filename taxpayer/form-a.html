@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>국세환급금양도요구서 작성</title>
+<link rel="stylesheet" href="../css/common.css">
+<link rel="stylesheet" href="../css/mobile.css">
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/supabase-client.js"></script>
+<style>
+  .item-row { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .item-row .field { margin-bottom: 10px; }
+  .item-row .field:last-child { margin-bottom: 0; }
+  .item-row-title { font-weight: 700; font-size: 13px; color: var(--color-text-muted); margin-bottom: 10px; }
+  .row-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .total-display { background: var(--color-primary-light); border-radius: var(--radius); padding: 12px 16px; text-align: right; font-weight: 700; color: var(--color-primary-dark); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="mobile-container">
+
+  <div class="mobile-header">
+    <h1>국세환급금양도요구서</h1>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:14.2%;"></div></div>
+    <div class="step-label" id="step-label">1 / 7 단계 - 안내</div>
+  </div>
+
+  <form id="main-form">
+  <div class="step-content">
+
+    <!-- STEP 1: 안내 -->
+    <div class="step-panel active" data-step="1">
+      <div class="info-box">
+        국세환급금양도요구서는 <b>양도자(환급금을 넘겨주는 사람)</b>와
+        <b>양수자(환급금을 받는 사람)</b> 두 분의 정보와 서명이 모두 필요합니다.
+        두 분이 함께 계신 상태에서 작성해 주세요.
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px;">준비물</h3>
+        <ul style="margin:0; padding-left:18px; font-size:14px; color:var(--color-text-muted);">
+          <li>양도자 성명 · 주민등록번호 · 주소 · 전화번호</li>
+          <li>양수자 성명 · 주민등록번호 · 주소 · 전화번호</li>
+          <li>양도할 국세환급금 내역(세목, 금액 등)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 2: 양도자 정보 -->
+    <div class="step-panel" data-step="2">
+      <div class="info-box">양도자: 국세환급금을 <b>넘겨주는</b> 분입니다.</div>
+
+      <div class="field">
+        <label class="required">성명(대표자)</label>
+        <input type="text" id="transferor_name" placeholder="예: 홍길동">
+        <div class="error-msg">성명을 입력해 주세요.</div>
+      </div>
+      <div class="field">
+        <label class="required">주민등록번호</label>
+        <input type="text" id="transferor_rrn" placeholder="900101-1234567" maxlength="14">
+        <div class="error-msg">주민등록번호 형식을 확인해 주세요.</div>
+      </div>
+      <div class="field">
+        <label>사업자등록번호 <span class="text-muted" style="font-weight:400;">(해당 시)</span></label>
+        <input type="text" id="transferor_biz_no" placeholder="123-45-67890" maxlength="12">
+      </div>
+      <div class="field">
+        <label class="required">주소(사업장 소재지)</label>
+        <input type="text" id="transferor_address" placeholder="예: 인천광역시 ○○구 ○○로 12">
+        <div class="error-msg">주소를 입력해 주세요.</div>
+      </div>
+      <div class="field">
+        <label class="required">전화번호</label>
+        <input type="tel" id="transferor_phone" placeholder="010-1234-5678" maxlength="13">
+        <div class="error-msg">전화번호 형식을 확인해 주세요.</div>
+      </div>
+    </div>
+
+    <!-- STEP 3: 양수자 정보 -->
+    <div class="step-panel" data-step="3">
+      <div class="info-box">양수자: 국세환급금을 <b>받는</b> 분입니다.</div>
+
+      <div class="field">
+        <label class="required">성명(대표자)</label>
+        <input type="text" id="transferee_name" placeholder="예: 김영희">
+        <div class="error-msg">성명을 입력해 주세요.</div>
+      </div>
+      <div class="field">
+        <label class="required">주민등록번호</label>
+        <input type="text" id="transferee_rrn" placeholder="900101-2345678" maxlength="14">
+        <div class="error-msg">주민등록번호 형식을 확인해 주세요.</div>
+      </div>
+      <div class="field">
+        <label>사업자등록번호 <span class="text-muted" style="font-weight:400;">(해당 시)</span></label>
+        <input type="text" id="transferee_biz_no" placeholder="123-45-67890" maxlength="12">
+      </div>
+      <div class="field">
+        <label class="required">주소(사업장 소재지)</label>
+        <input type="text" id="transferee_address" placeholder="예: 인천광역시 ○○구 ○○로 12">
+        <div class="error-msg">주소를 입력해 주세요.</div>
+      </div>
+      <div class="field">
+        <label class="required">전화번호</label>
+        <input type="tel" id="transferee_phone" placeholder="010-1234-5678" maxlength="13">
+        <div class="error-msg">전화번호 형식을 확인해 주세요.</div>
+      </div>
+    </div>
+
+    <!-- STEP 4: 국세환급금 내역 -->
+    <div class="step-panel" data-step="4">
+      <div class="info-box">양도할 국세환급금 내역을 입력해 주세요. (최소 1건 필요)</div>
+
+      <div id="refund-items-wrap"></div>
+      <button type="button" class="btn btn-secondary btn-block btn-sm" id="add-refund-item-btn" style="margin-bottom:20px;">+ 항목 추가</button>
+
+      <div class="total-display">국세환급금 합계: <span id="refund-total-display">0</span> 원</div>
+
+      <label class="checkbox-item" style="margin-top:24px;">
+        <input type="checkbox" id="transfer_full_amount" checked>
+        <span class="item-title">국세환급금 전액을 양수인에게 양도합니다</span>
+      </label>
+
+      <div id="transfer-amount-section" style="display:none; margin-top:16px;">
+        <label style="font-weight:600; font-size:14px; display:block; margin-bottom:10px;">양도하려는 금액</label>
+        <div id="transfer-items-wrap"></div>
+        <button type="button" class="btn btn-secondary btn-block btn-sm" id="add-transfer-item-btn" style="margin-bottom:12px;">+ 항목 추가</button>
+        <div class="total-display">양도 금액 합계: <span id="transfer-total-display">0</span> 원</div>
+      </div>
+      <div class="error-msg" id="refund-error-msg" style="display:none; margin-top:12px;">
+        최소 1개 항목의 세목과 내국세 금액을 입력해 주세요.
+      </div>
+    </div>
+
+    <!-- STEP 5: 양도인 서명 -->
+    <div class="step-panel" data-step="5">
+      <div class="card" style="margin-bottom:20px;">
+        <p class="text-sm" style="margin:0;">
+          위 국세환급금(국세환급가산금 포함) 등을 양수인에게 양도하고
+          「국세기본법」 제53조 및 같은 법 시행령 제43조의4제1항에 따라 위와 같이 요구합니다.
+        </p>
+      </div>
+      <label style="font-weight:600; font-size:14px; display:block; margin-bottom:8px;">양도인 서명</label>
+      <div class="signature-pad-wrap" id="transferor-signature-wrap">
+        <span class="signature-placeholder">여기에 손가락으로 서명해 주세요</span>
+        <canvas id="transferor-signature-canvas"></canvas>
+      </div>
+      <div class="signature-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="clear-transferor-signature-btn">다시 쓰기</button>
+      </div>
+      <div class="error-msg" id="transferor-signature-error-msg" style="display:none;">양도인 서명을 입력해 주세요.</div>
+    </div>
+
+    <!-- STEP 6: 양수인 서명 -->
+    <div class="step-panel" data-step="6">
+      <div class="info-box">이제 <b>양수인</b>에게 휴대폰을 건네주세요.</div>
+      <label style="font-weight:600; font-size:14px; display:block; margin-bottom:8px;">양수인 서명</label>
+      <div class="signature-pad-wrap" id="transferee-signature-wrap">
+        <span class="signature-placeholder">여기에 손가락으로 서명해 주세요</span>
+        <canvas id="transferee-signature-canvas"></canvas>
+      </div>
+      <div class="signature-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="clear-transferee-signature-btn">다시 쓰기</button>
+      </div>
+      <div class="error-msg" id="transferee-signature-error-msg" style="display:none;">양수인 서명을 입력해 주세요.</div>
+    </div>
+
+    <!-- STEP 7: 최종 확인 -->
+    <div class="step-panel" data-step="7">
+      <div class="info-box">아래 내용을 확인하신 후 제출해 주세요.</div>
+      <div class="card"><div id="summary-list"></div></div>
+      <div class="error-box" id="submit-error" style="display:none; margin-top:16px;"></div>
+    </div>
+
+  </div>
+  </form>
+
+  <div class="step-nav">
+    <div class="step-nav-inner">
+      <button type="button" class="btn btn-secondary btn-prev" id="prev-btn" style="display:none;">이전</button>
+      <button type="button" class="btn btn-primary btn-block" id="next-btn">다음</button>
+      <button type="button" class="btn btn-primary btn-block" id="submit-btn" style="display:none;">제출하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL_STEPS = 7;
+let currentStep = 1;
+const stepLabels = { 1:'안내', 2:'양도자 정보', 3:'양수자 정보', 4:'환급금 내역', 5:'양도인 서명', 6:'양수인 서명', 7:'최종확인' };
+
+function isValidRRN(v) { return /^\d{6}-?\d{7}$/.test((v || '').trim()); }
+function isValidPhone(v) { return /^01[0-9]-?\d{3,4}-?\d{4}$/.test((v || '').trim()); }
+
+function validateTextField(id, testFn) {
+  const el = document.getElementById(id);
+  const field = el.closest('.field');
+  const errEl = field.querySelector('.error-msg');
+  const valid = testFn(el.value);
+  field.classList.toggle('has-error', !valid);
+  if (errEl) errEl.style.display = valid ? 'none' : 'block';
+  return valid;
+}
+
+/* ---------- 항목(세목) 행 관리 ---------- */
+function buildItemRowHtml(prefix, index) {
+  return `
+    <div class="item-row" id="${prefix}-row-${index}" style="${index > 0 ? 'display:none;' : ''}">
+      <div class="item-row-title">항목 ${index + 1}</div>
+      <div class="field">
+        <label>세목</label>
+        <input type="text" id="${prefix}_tax_item_${index}" placeholder="예: 종합부동산세">
+      </div>
+      <div class="field">
+        <label>납부기한</label>
+        <input type="date" id="${prefix}_due_date_${index}">
+      </div>
+      <div class="row-grid-2">
+        <div class="field"><label>내국세</label><input type="text" inputmode="numeric" id="${prefix}_national_tax_${index}" placeholder="0"></div>
+        <div class="field"><label>교육세</label><input type="text" inputmode="numeric" id="${prefix}_edu_tax_${index}" placeholder="0"></div>
+      </div>
+      <div class="row-grid-2">
+        <div class="field"><label>가산금</label><input type="text" inputmode="numeric" id="${prefix}_surcharge_${index}" placeholder="0"></div>
+        <div class="field"><label>국세환급가산금</label><input type="text" inputmode="numeric" id="${prefix}_refund_surcharge_${index}" placeholder="0"></div>
+      </div>
+    </div>`;
+}
+
+function setupItemGroup(prefix, wrapId, addBtnId, totalDisplayId, maxRows) {
+  const wrap = document.getElementById(wrapId);
+  wrap.innerHTML = '';
+  for (let i = 0; i < maxRows; i++) wrap.insertAdjacentHTML('beforeend', buildItemRowHtml(prefix, i));
+
+  let visibleCount = 1;
+  const addBtn = document.getElementById(addBtnId);
+  addBtn.addEventListener('click', () => {
+    if (visibleCount >= maxRows) { addBtn.style.display = 'none'; return; }
+    document.getElementById(`${prefix}-row-${visibleCount}`).style.display = 'block';
+    visibleCount++;
+    if (visibleCount >= maxRows) addBtn.style.display = 'none';
+  });
+
+  wrap.addEventListener('input', () => updateItemTotal(prefix, maxRows, totalDisplayId));
+}
+
+function readItemRows(prefix, maxRows) {
+  const rows = [];
+  for (let i = 0; i < maxRows; i++) {
+    const rowEl = document.getElementById(`${prefix}-row-${i}`);
+    if (!rowEl || rowEl.style.display === 'none') continue;
+    const taxItem = document.getElementById(`${prefix}_tax_item_${i}`).value.trim();
+    const nationalTax = Number(document.getElementById(`${prefix}_national_tax_${i}`).value) || 0;
+    const eduTax = Number(document.getElementById(`${prefix}_edu_tax_${i}`).value) || 0;
+    const surcharge = Number(document.getElementById(`${prefix}_surcharge_${i}`).value) || 0;
+    const refundSurcharge = Number(document.getElementById(`${prefix}_refund_surcharge_${i}`).value) || 0;
+    const dueDate = document.getElementById(`${prefix}_due_date_${i}`).value;
+    if (!taxItem && nationalTax === 0 && eduTax === 0 && surcharge === 0 && refundSurcharge === 0) continue;
+    rows.push({
+      tax_item: taxItem, due_date: dueDate,
+      national_tax: nationalTax, edu_tax: eduTax, surcharge, refund_surcharge: refundSurcharge,
+      total: nationalTax + eduTax + surcharge + refundSurcharge
+    });
+  }
+  return rows;
+}
+
+function updateItemTotal(prefix, maxRows, totalDisplayId) {
+  const rows = readItemRows(prefix, maxRows);
+  const total = rows.reduce((s, r) => s + r.total, 0);
+  document.getElementById(totalDisplayId).textContent = total.toLocaleString('ko-KR');
+}
+
+setupItemGroup('refund', 'refund-items-wrap', 'add-refund-item-btn', 'refund-total-display', 3);
+setupItemGroup('transfer', 'transfer-items-wrap', 'add-transfer-item-btn', 'transfer-total-display', 3);
+
+document.getElementById('transfer_full_amount').addEventListener('change', function () {
+  document.getElementById('transfer-amount-section').style.display = this.checked ? 'none' : 'block';
+});
+
+/* ---------- 전자서명 (2개) ---------- */
+function createSignaturePad(canvasId, wrapId) {
+  const canvas = document.getElementById(canvasId);
+  const pad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#1B1B1B' });
+
+  function resize() {
+    if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) return; // 숨겨진 상태면 건너뜀
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const data = pad.toData();
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    canvas.getContext('2d').scale(ratio, ratio);
+    pad.clear();
+    if (data && data.length) pad.fromData(data);
+  }
+  window.addEventListener('resize', resize);
+
+  pad.addEventListener('beginStroke', () => {
+    document.getElementById(wrapId).classList.add('signed');
+    document.querySelector(`#${wrapId} .signature-placeholder`).style.display = 'none';
+  });
+
+  return { pad, resize };
+}
+
+const transferorSig = createSignaturePad('transferor-signature-canvas', 'transferor-signature-wrap');
+const transfereeSig = createSignaturePad('transferee-signature-canvas', 'transferee-signature-wrap');
+
+document.getElementById('clear-transferor-signature-btn').addEventListener('click', () => {
+  transferorSig.pad.clear();
+  document.getElementById('transferor-signature-wrap').classList.remove('signed');
+  document.querySelector('#transferor-signature-wrap .signature-placeholder').style.display = 'block';
+});
+document.getElementById('clear-transferee-signature-btn').addEventListener('click', () => {
+  transfereeSig.pad.clear();
+  document.getElementById('transferee-signature-wrap').classList.remove('signed');
+  document.querySelector('#transferee-signature-wrap .signature-placeholder').style.display = 'block';
+});
+
+/* ---------- STEP 검증 ---------- */
+function validateStep(step) {
+  let ok = true;
+
+  if (step === 2) {
+    ok = validateTextField('transferor_name', v => v.trim().length > 0) && ok;
+    ok = validateTextField('transferor_rrn', isValidRRN) && ok;
+    ok = validateTextField('transferor_address', v => v.trim().length > 0) && ok;
+    ok = validateTextField('transferor_phone', isValidPhone) && ok;
+  }
+
+  if (step === 3) {
+    ok = validateTextField('transferee_name', v => v.trim().length > 0) && ok;
+    ok = validateTextField('transferee_rrn', isValidRRN) && ok;
+    ok = validateTextField('transferee_address', v => v.trim().length > 0) && ok;
+    ok = validateTextField('transferee_phone', isValidPhone) && ok;
+  }
+
+  if (step === 4) {
+    const rows = readItemRows('refund', 3);
+    const errEl = document.getElementById('refund-error-msg');
+    if (rows.length === 0) { errEl.style.display = 'block'; ok = false; }
+    else { errEl.style.display = 'none'; }
+  }
+
+  if (step === 5) {
+    const errEl = document.getElementById('transferor-signature-error-msg');
+    if (transferorSig.pad.isEmpty()) { errEl.style.display = 'block'; ok = false; }
+    else { errEl.style.display = 'none'; }
+  }
+
+  if (step === 6) {
+    const errEl = document.getElementById('transferee-signature-error-msg');
+    if (transfereeSig.pad.isEmpty()) { errEl.style.display = 'block'; ok = false; }
+    else { errEl.style.display = 'none'; }
+  }
+
+  return ok;
+}
+
+/* ---------- 단계 이동 ---------- */
+function goToStep(step) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.step-panel[data-step="${step}"]`).classList.add('active');
+
+  document.getElementById('progress-fill').style.width = (step / TOTAL_STEPS * 100) + '%';
+  document.getElementById('step-label').textContent = `${step} / ${TOTAL_STEPS} 단계 - ${stepLabels[step]}`;
+
+  document.getElementById('prev-btn').style.display = step === 1 ? 'none' : 'inline-block';
+  document.getElementById('next-btn').style.display = step === TOTAL_STEPS ? 'none' : 'block';
+  document.getElementById('submit-btn').style.display = step === TOTAL_STEPS ? 'block' : 'none';
+
+  if (step === 5) setTimeout(transferorSig.resize, 0);
+  if (step === 6) setTimeout(transfereeSig.resize, 0);
+  if (step === 7) renderSummary();
+
+  window.scrollTo(0, 0);
+  currentStep = step;
+}
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  if (!validateStep(currentStep)) return;
+  if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+});
+document.getElementById('prev-btn').addEventListener('click', () => {
+  if (currentStep > 1) goToStep(currentStep - 1);
+});
+
+/* ---------- 요약/데이터 수집 ---------- */
+function collectPayload() {
+  const refundItems = readItemRows('refund', 3);
+  const fullAmount = document.getElementById('transfer_full_amount').checked;
+  const transferItems = fullAmount ? refundItems : readItemRows('transfer', 3);
+
+  return {
+    transferor_name: document.getElementById('transferor_name').value.trim(),
+    transferor_rrn: document.getElementById('transferor_rrn').value.trim(),
+    transferor_biz_no: document.getElementById('transferor_biz_no').value.trim(),
+    transferor_address: document.getElementById('transferor_address').value.trim(),
+    transferor_phone: document.getElementById('transferor_phone').value.trim(),
+    transferee_name: document.getElementById('transferee_name').value.trim(),
+    transferee_rrn: document.getElementById('transferee_rrn').value.trim(),
+    transferee_biz_no: document.getElementById('transferee_biz_no').value.trim(),
+    transferee_address: document.getElementById('transferee_address').value.trim(),
+    transferee_phone: document.getElementById('transferee_phone').value.trim(),
+    refund_items: refundItems,
+    transfer_amount_items: transferItems,
+    transferor_signature: transferorSig.pad.isEmpty() ? null : transferorSig.pad.toDataURL('image/png'),
+    transferee_signature: transfereeSig.pad.isEmpty() ? null : transfereeSig.pad.toDataURL('image/png')
+  };
+}
+
+function renderSummary() {
+  const p = collectPayload();
+  const refundTotal = p.refund_items.reduce((s, r) => s + r.total, 0);
+  const rows = [
+    ['양도인', p.transferor_name],
+    ['양수인', p.transferee_name],
+    ['환급금 항목 수', p.refund_items.length + '건'],
+    ['국세환급금 합계', refundTotal.toLocaleString('ko-KR') + '원'],
+    ['양도인 서명', transferorSig.pad.isEmpty() ? '없음' : '완료'],
+    ['양수인 서명', transfereeSig.pad.isEmpty() ? '없음' : '완료']
+  ];
+  document.getElementById('summary-list').innerHTML = rows.map(([label, value]) =>
+    `<div class="summary-row"><span class="label">${label}</span><span class="value">${value}</span></div>`
+  ).join('');
+}
+
+/* ---------- 제출 ---------- */
+document.getElementById('submit-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('submit-btn');
+  const errBox = document.getElementById('submit-error');
+  errBox.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '제출 중...';
+
+  try {
+    const payload = collectPayload();
+    const receptionNumber = await submitFormA(payload);
+    sessionStorage.setItem('lastReceptionNumber', receptionNumber);
+    window.location.href = 'complete.html';
+  } catch (err) {
+    console.error(err);
+    errBox.textContent = '제출 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '제출하기';
+  }
+});
+
+goToStep(1);
+</script>
+</body>
+</html>
