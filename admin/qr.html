@@ -71,14 +71,15 @@
     <div class="qr-actions">
       <button class="btn btn-secondary btn-sm" id="download-qr-btn">QR 이미지 저장</button>
       <button class="btn btn-secondary btn-sm" id="copy-link-btn">링크 복사</button>
-      <a class="btn btn-secondary btn-sm" id="kakao-share-btn" target="_blank" rel="noopener">카카오톡 공유</a>
+      <button class="btn btn-secondary btn-sm" id="share-btn">공유하기</button>
       <a class="btn btn-secondary btn-sm" id="sms-btn">문자 보내기</a>
       <a class="btn btn-secondary btn-sm" id="email-btn">이메일 보내기</a>
     </div>
 
     <p class="text-sm text-muted" style="margin-top:20px;">
-      💡 실무 팁: 카카오톡에서는 QR 이미지를 저장한 뒤 상대방과의 채팅창에 이미지+링크를 함께 보내는 것이
-      가장 확실합니다 (아래 <b>기본 안내문</b>도 참고).
+      💡 실무 팁: 스마트폰에서는 <b>공유하기</b> 버튼을 누르면 카카오톡이 공유 목록에 바로 뜹니다
+      (선택만 하면 링크가 자동으로 채팅창에 들어갑니다). PC에서 작업 중이시라면
+      <b>QR 이미지 저장</b> 후 카카오톡 채팅창에 이미지+안내문을 함께 보내는 방법도 좋습니다.
     </p>
   </div>
 
@@ -224,9 +225,25 @@ document.getElementById('copy-link-btn').addEventListener('click', () => copyTex
 function setupShareButtons(url) {
   const message = `[국세환급금 동의서 온라인 작성]\n아래 링크에서 스마트폰으로 간편하게 작성해 주세요.\n\n${url}`;
 
-  // 카카오톡: 앱 딥링크(모바일)와 카카오톡 공유 웹뷰 병행. 일반적으로 pc에서는 "카카오톡 나에게 보내기" 경로로 유도
-  // → 가장 확실한 방법은 링크 복사 후 붙여넣기이므로, 카카오톡 버튼은 카카오톡 웹 공유 창을 연다.
-  document.getElementById('kakao-share-btn').href = `https://sharer.kakao.com/talk/friends/picker/link?app_key=&url=${encodeURIComponent(url)}`;
+  // 공유하기: 스마트폰 기본 공유 시트를 연다 (카카오톡, 문자, 이메일 등이 자동으로 목록에 뜬다)
+  // 카카오 공식 공유 API(sharer.kakao.com, Kakao SDK)는 카카오 디벨로퍼스에서
+  // 앱 등록 후 발급받는 "앱 키"가 반드시 있어야 동작한다. 앱 키 없이 호출하면
+  // "Error 4011 잘못된 앱 키" 오류가 발생하므로, 앱 키 없이도 동작하는
+  // 브라우저 표준 Web Share API(navigator.share)를 사용한다.
+  const shareBtn = document.getElementById('share-btn');
+  shareBtn.onclick = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '국세환급금 동의서 온라인 작성 안내', text: message, url });
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error(e); // 사용자가 취소한 경우는 무시
+      }
+    } else {
+      // PC 등 공유 시트를 지원하지 않는 환경 → 안내문을 복사해서 대체
+      copyText(message);
+      alert('이 브라우저는 공유하기 기능을 지원하지 않아 안내문을 복사했습니다.\n카카오톡이나 문자에 직접 붙여넣어 주세요.');
+    }
+  };
 
   // 문자 (SMS) - iOS/안드로이드에서 문자앱이 자동으로 열린다
   document.getElementById('sms-btn').href = `sms:?&body=${encodeURIComponent(message)}`;
