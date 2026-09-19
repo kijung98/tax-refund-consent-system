@@ -439,6 +439,8 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   try {
     const payload = collectPayload();
     const receptionNumber = await submitFormB(payload);
+    unloadGuard.markClean();
+    clearDraftFromSession(DRAFT_KEY);
     sessionStorage.setItem('lastReceptionNumber', receptionNumber);
     window.location.href = 'complete.html';
   } catch (err) {
@@ -451,6 +453,29 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   }
 });
 
+// ---------- 임시저장 / 이탈방지 초기화 ----------
+const DRAFT_KEY = 'draft_form_b';
+const mainFormEl = document.getElementById('main-form');
+const unloadGuard = setupUnloadGuard();
+
+mainFormEl.addEventListener('input', () => {
+  unloadGuard.markDirty();
+  saveDraftToSession(DRAFT_KEY, mainFormEl, currentStep);
+});
+mainFormEl.addEventListener('change', () => {
+  unloadGuard.markDirty();
+  saveDraftToSession(DRAFT_KEY, mainFormEl, currentStep);
+});
+
+const restoredDraft = loadDraftIfConfirmed(DRAFT_KEY);
+if (restoredDraft) {
+  restoreFormDraft(mainFormEl, restoredDraft);
+  syncTaxpayerFields(); // same_as_applicant 체크상태에 따른 표시/숨김 재동기화
+  unloadGuard.markDirty();
+}
+// 저장했던 단계로 바로 이동하지 않고 항상 1단계부터 시작한다.
+// (서명 등 필수 검증을 건너뛴 채 뒷단계로 넘어가는 것을 방지하기 위함 -
+//  내용은 이미 채워져 있으므로 "다음"만 눌러가면 금방 이어서 작성할 수 있다)
 goToStep(1);
 </script>
 </body>

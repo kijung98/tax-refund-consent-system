@@ -11,6 +11,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/supabase-client.js"></script>
 <script src="../js/excel-export.js"></script>
+<script src="../js/auth-guard.js"></script>
 <style>
   table.item-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
   table.item-table th, table.item-table td { border: 1px solid var(--color-border); padding: 8px 10px; font-size: 13px; text-align: right; }
@@ -29,6 +30,7 @@
     <div class="actions">
       <button class="btn btn-secondary btn-sm" id="excel-one-btn">엑셀</button>
       <a href="#" id="print-link" class="btn btn-secondary btn-sm" target="_blank">인쇄(A4)</a>
+      <span id="admin-bar"></span>
     </div>
   </div>
 
@@ -49,6 +51,27 @@ function ntsResultLabel(v) {
   return { '신청유리': '특례 신청이 유리하다고 안내받음', '취소유리': '특례 취소가 유리하다고 안내받음', '모름': '안내받았으나 모름' }[v] || '해당없음 / 선택안함';
 }
 function checkIcon(v) { return v ? '<span class="check-icon-ok">O</span>' : '<span class="check-icon-no">X</span>'; }
+
+/**
+ * 주민등록번호를 기본적으로 뒷자리 마스킹(●●●●●●)해서 보여주고,
+ * "보기"를 누르면 전체를 펼쳐 보여준다 (화면 노출을 최소화하기 위함 - 실제 값은
+ * 이미 admin_list_submissions RPC를 통해 복호화되어 전달된 상태).
+ */
+function maskedRrnHtml(rrn) {
+  if (!rrn) return '-';
+  const id = 'rrn-' + Math.random().toString(36).slice(2, 9);
+  const masked = rrn.length >= 8 ? rrn.slice(0, 8) + '●●●●●●' : '●●●●●●●●●●●●●';
+  return `<span id="${id}-masked">${masked}</span><span id="${id}-full" style="display:none;">${rrn}</span> <a href="#" class="text-sm" onclick="toggleRrn('${id}', this); return false;" style="margin-left:6px;">보기</a>`;
+}
+
+function toggleRrn(id, linkEl) {
+  const masked = document.getElementById(id + '-masked');
+  const full = document.getElementById(id + '-full');
+  const hidden = full.style.display === 'none';
+  full.style.display = hidden ? 'inline' : 'none';
+  masked.style.display = hidden ? 'none' : 'inline';
+  linkEl.textContent = hidden ? '숨기기' : '보기';
+}
 function won(n) { return (Number(n) || 0).toLocaleString('ko-KR') + '원'; }
 
 function itemsTableHtml(items, title) {
@@ -142,7 +165,7 @@ function renderFormBSections(f) {
       <h3>신청인 정보</h3>
       <div class="detail-grid">
         <div class="summary-row"><span class="label">성명</span><span class="value">${f.applicant_name || '-'}</span></div>
-        <div class="summary-row"><span class="label">주민등록번호</span><span class="value">${f.applicant_rrn || '-'}</span></div>
+        <div class="summary-row"><span class="label">주민등록번호</span><span class="value">${maskedRrnHtml(f.applicant_rrn)}</span></div>
         <div class="summary-row full"><span class="label">주소</span><span class="value">${f.applicant_address || '-'}</span></div>
         <div class="summary-row"><span class="label">전화번호</span><span class="value">${f.applicant_phone || '-'}</span></div>
       </div>
@@ -152,9 +175,9 @@ function renderFormBSections(f) {
       <h3>납세의무자 · 배우자 정보</h3>
       <div class="detail-grid">
         <div class="summary-row"><span class="label">납세의무자</span><span class="value">${f.taxpayer_name || '-'}</span></div>
-        <div class="summary-row"><span class="label">납세의무자 주민등록번호</span><span class="value">${f.taxpayer_rrn || '-'}</span></div>
+        <div class="summary-row"><span class="label">납세의무자 주민등록번호</span><span class="value">${maskedRrnHtml(f.taxpayer_rrn)}</span></div>
         <div class="summary-row"><span class="label">배우자</span><span class="value">${f.spouse_name || '-'}</span></div>
-        <div class="summary-row"><span class="label">배우자 주민등록번호</span><span class="value">${f.spouse_rrn || '-'}</span></div>
+        <div class="summary-row"><span class="label">배우자 주민등록번호</span><span class="value">${maskedRrnHtml(f.spouse_rrn)}</span></div>
       </div>
     </div>
 
@@ -185,7 +208,7 @@ function renderFormASections(f) {
       <h3>양도자 정보</h3>
       <div class="detail-grid">
         <div class="summary-row"><span class="label">성명</span><span class="value">${f.transferor_name || '-'}</span></div>
-        <div class="summary-row"><span class="label">주민등록번호</span><span class="value">${f.transferor_rrn || '-'}</span></div>
+        <div class="summary-row"><span class="label">주민등록번호</span><span class="value">${maskedRrnHtml(f.transferor_rrn)}</span></div>
         <div class="summary-row"><span class="label">사업자등록번호</span><span class="value">${f.transferor_biz_no || '-'}</span></div>
         <div class="summary-row"><span class="label">전화번호</span><span class="value">${f.transferor_phone || '-'}</span></div>
         <div class="summary-row full"><span class="label">주소</span><span class="value">${f.transferor_address || '-'}</span></div>
@@ -196,7 +219,7 @@ function renderFormASections(f) {
       <h3>양수자 정보</h3>
       <div class="detail-grid">
         <div class="summary-row"><span class="label">성명</span><span class="value">${f.transferee_name || '-'}</span></div>
-        <div class="summary-row"><span class="label">주민등록번호</span><span class="value">${f.transferee_rrn || '-'}</span></div>
+        <div class="summary-row"><span class="label">주민등록번호</span><span class="value">${maskedRrnHtml(f.transferee_rrn)}</span></div>
         <div class="summary-row"><span class="label">사업자등록번호</span><span class="value">${f.transferee_biz_no || '-'}</span></div>
         <div class="summary-row"><span class="label">전화번호</span><span class="value">${f.transferee_phone || '-'}</span></div>
         <div class="summary-row full"><span class="label">주소</span><span class="value">${f.transferee_address || '-'}</span></div>
@@ -235,7 +258,7 @@ function renderFormCSections(f) {
       <h3>청구인 정보</h3>
       <div class="detail-grid">
         <div class="summary-row"><span class="label">성명</span><span class="value">${f.claimant_name || '-'}</span></div>
-        <div class="summary-row"><span class="label">주민등록번호</span><span class="value">${f.claimant_rrn || '-'}</span></div>
+        <div class="summary-row"><span class="label">주민등록번호</span><span class="value">${maskedRrnHtml(f.claimant_rrn)}</span></div>
         <div class="summary-row"><span class="label">사업자등록번호</span><span class="value">${f.claimant_biz_no || '-'}</span></div>
         <div class="summary-row"><span class="label">전화번호</span><span class="value">${f.claimant_phone || '-'}</span></div>
         <div class="summary-row full"><span class="label">주소</span><span class="value">${f.claimant_address || '-'}</span></div>
@@ -313,7 +336,12 @@ document.getElementById('excel-one-btn').addEventListener('click', () => {
   if (currentSubmission) exportSubmissionsToExcel([currentSubmission], `동의서_${currentSubmission.reception_number}.xlsx`);
 });
 
-loadDetail();
+(async () => {
+  const session = await requireAdminAuth();
+  if (!session) return;
+  renderAdminBar('admin-bar', session);
+  loadDetail();
+})();
 </script>
 </body>
 </html>

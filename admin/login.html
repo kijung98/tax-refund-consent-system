@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 로그인</title>
+<link rel="stylesheet" href="../css/common.css">
+<link rel="stylesheet" href="../css/admin.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/supabase-client.js"></script>
+</head>
+<body>
+<div class="admin-layout" style="max-width:400px; margin-top:80px;">
+  <div class="detail-section">
+    <h1 style="text-align:center; margin-bottom:4px;">관리자 로그인</h1>
+    <p class="text-sm text-muted text-center" style="margin-bottom:24px;">국세환급금 동의서 관리 시스템</p>
+
+    <div class="field">
+      <label class="required">이메일</label>
+      <input type="text" id="email" placeholder="admin@example.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label class="required">비밀번호</label>
+      <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
+    </div>
+
+    <button class="btn btn-primary btn-block" id="login-btn">로그인</button>
+    <div class="error-box" id="login-error" style="display:none; margin-top:14px;"></div>
+
+    <p class="text-sm text-muted" style="margin-top:20px; text-align:center;">
+      계정이 없으신가요? Supabase 대시보드 &gt; Authentication &gt; Users 에서<br>
+      관리자 계정을 직접 추가해 주세요. (README "관리자 로그인 설정" 참고)
+    </p>
+  </div>
+</div>
+
+<script>
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+async function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const errBox = document.getElementById('login-error');
+  errBox.style.display = 'none';
+
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!email || !password) {
+    errBox.textContent = '이메일과 비밀번호를 모두 입력해 주세요.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '로그인 중...';
+
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    errBox.textContent = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.';
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '로그인';
+    return;
+  }
+
+  window.location.href = 'index.html';
+}
+
+// 이미 로그인되어 있으면 바로 목록으로 이동
+(async () => {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) window.location.href = 'index.html';
+})();
+</script>
+</body>
+</html>

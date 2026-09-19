@@ -55,3 +55,98 @@ function attachAddressSearch(buttonEl, addressInput, detailInput) {
     }).open();
   });
 }
+
+// ============================================================
+// 임시저장(초안) — sessionStorage 기반
+// localStorage가 아니라 sessionStorage를 쓰는 이유: 브라우저 탭/앱을
+// 완전히 닫으면 자동으로 사라진다. 주민등록번호처럼 민감한 값을
+// 오래 남겨두지 않으면서도, 화면이 꺼지거나 실수로 뒤로가기를 누른
+// 정도로는 데이터를 잃지 않도록 하기 위한 절충이다.
+// 전자서명은 저장 대상에서 제외한다 (다시 서명하도록 유도).
+// ============================================================
+
+/**
+ * 폼 안의 모든 input/select/textarea 값을 스냅샷으로 만든다.
+ * (서명 캔버스는 input/select/textarea가 아니므로 자동으로 제외된다)
+ */
+function snapshotFormDraft(formEl, currentStep) {
+  const values = {};
+  formEl.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'checkbox') {
+      if (el.id) values[el.id] = el.checked;
+    } else if (el.type === 'radio') {
+      if (el.name && el.checked) values[el.name] = el.value;
+    } else if (el.id) {
+      values[el.id] = el.value;
+    }
+  });
+  return { step: currentStep, values, savedAt: Date.now() };
+}
+
+/**
+ * snapshotFormDraft()로 만든 draft를 폼에 되돌린다.
+ */
+function restoreFormDraft(formEl, draft) {
+  formEl.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.type === 'checkbox') {
+      if (el.id && draft.values[el.id] !== undefined) el.checked = draft.values[el.id];
+    } else if (el.type === 'radio') {
+      if (el.name && draft.values[el.name] === el.value) el.checked = true;
+    } else if (el.id && draft.values[el.id] !== undefined) {
+      el.value = draft.values[el.id];
+    }
+  });
+}
+
+function saveDraftToSession(key, formEl, currentStep) {
+  try { sessionStorage.setItem(key, JSON.stringify(snapshotFormDraft(formEl, currentStep))); }
+  catch (e) { /* 저장 실패(용량 초과 등)는 조용히 무시 - 임시저장은 부가기능이라 제출 자체를 막지 않는다 */ }
+}
+
+function clearDraftFromSession(key) {
+  try { sessionStorage.removeItem(key); } catch (e) { /* 무시 */ }
+}
+
+/**
+ * 페이지 로드시 이어서 작성할 초안이 있으면 사용자에게 물어보고,
+ * 이어서 작성하기로 하면 draft 객체를, 아니면 null을 반환한다(이 경우 초안은 삭제됨).
+ */
+function loadDraftIfConfirmed(key) {
+  let raw;
+  try { raw = sessionStorage.getItem(key); } catch (e) { return null; }
+  if (!raw) return null;
+
+  try {
+    const draft = JSON.parse(raw);
+    if (confirm('이전에 작성하시던 내용이 있습니다. 이어서 작성하시겠습니까?')) {
+      return draft;
+    }
+    clearDraftFromSession(key);
+    return null;
+  } catch (e) {
+    clearDraftFromSession(key);
+    return null;
+  }
+}
+
+// ============================================================
+// 이탈방지 — 뒤로가기/닫기/새로고침 시 확인창 표시
+// ============================================================
+
+/**
+ * markDirty()를 호출한 이후부터, markClean()을 호출하기 전까지
+ * 페이지를 벗어나려 하면(뒤로가기, 닫기, 새로고침) 브라우저 확인창을 띄운다.
+ * 제출 성공 등 "의도된" 이동 직전에는 반드시 markClean()을 호출해야 확인창이 안 뜬다.
+ */
+function setupUnloadGuard() {
+  let dirty = false;
+  window.addEventListener('beforeunload', function (e) {
+    if (!dirty) return;
+    e.preventDefault();
+    e.returnValue = ''; // 최신 브라우저는 이 문구 대신 자체 기본 문구를 보여준다
+  });
+  return {
+    markDirty() { dirty = true; },
+    markClean() { dirty = false; }
+  };
+}

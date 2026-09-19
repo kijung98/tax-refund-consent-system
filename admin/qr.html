@@ -10,6 +10,10 @@
      1) 주력: cdnjs (전 세계 CDN, 국내 접속 가장 안정)
      2) 백업: jsdelivr — 주력이 실패했을 때만 로드 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/auth-guard.js"></script>
 <style>
   .qr-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 16px; }
   .qr-actions .btn { padding: 12px; font-size: 14px; }
@@ -38,6 +42,7 @@
       <a href="index.html" class="text-sm">&larr; 목록으로</a>
       <h1 style="margin-top:6px;">QR 코드 생성 · 링크 전송</h1>
     </div>
+    <span id="admin-bar"></span>
   </div>
 
   <div class="detail-section">
@@ -127,7 +132,12 @@ function guessTaxpayerUrl() {
   return `${url.origin}${path}`;
 }
 
-document.getElementById('base-url').value = guessTaxpayerUrl();
+(async () => {
+  const session = await requireAdminAuth();
+  if (!session) return;
+  renderAdminBar('admin-bar', session);
+  document.getElementById('base-url').value = guessTaxpayerUrl();
+})();
 
 // ==========================================================
 // QR 생성

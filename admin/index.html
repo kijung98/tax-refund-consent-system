@@ -11,6 +11,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/supabase-client.js"></script>
 <script src="../js/excel-export.js"></script>
+<script src="../js/auth-guard.js"></script>
 </head>
 <body>
 <div class="admin-layout">
@@ -21,6 +22,7 @@
       <a href="qr.html" class="btn btn-secondary btn-sm">QR 생성</a>
       <button class="btn btn-primary btn-sm" id="excel-btn">엑셀 다운로드</button>
       <button class="btn btn-secondary btn-sm" id="refresh-btn">새로고침</button>
+      <span id="admin-bar"></span>
     </div>
   </div>
 
@@ -142,7 +144,12 @@ document.getElementById('excel-btn').addEventListener('click', () => {
   exportSubmissionsToExcel(currentRows);
 });
 
-loadList();
+(async () => {
+  const session = await requireAdminAuth();
+  if (!session) return; // requireAdminAuth가 이미 로그인 페이지로 이동시킴
+  renderAdminBar('admin-bar', session);
+  loadList();
+})();
 </script>
 </body>
 </html>

@@ -7,13 +7,17 @@
 <link rel="stylesheet" href="../css/common.css">
 <link rel="stylesheet" href="../css/print.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/supabase-client.js"></script>
+<script src="../js/pdf-export.js"></script>
 </head>
 <body class="print-body">
 
 <div class="print-toolbar no-print">
-  <button class="btn btn-primary btn-sm" onclick="window.print()">인쇄 / PDF 저장</button>
+  <button class="btn btn-secondary btn-sm" onclick="window.print()">인쇄 / PDF 저장</button>
+  <button class="btn btn-primary btn-sm" id="pdf-download-btn">PDF 다운로드</button>
 </div>
 
 <div class="print-page" id="print-root">
@@ -31,6 +35,8 @@ function checkbox(checked) {
   return `<span class="print-checkbox ${checked ? 'checked' : ''}"></span>`;
 }
 
+let currentReceptionNumber = '';
+
 async function load() {
   const root = document.getElementById('print-root');
   if (!submissionId) { root.innerHTML = '<p>접수 ID가 없습니다.</p>'; return; }
@@ -38,12 +44,18 @@ async function load() {
   try {
     const row = await getSubmissionDetail(submissionId);
     const f = (row.form_b_joint_home && row.form_b_joint_home[0]) || {};
+    currentReceptionNumber = row.reception_number;
     render(row, f);
   } catch (err) {
     console.error(err);
     root.innerHTML = '<p>데이터를 불러오지 못했습니다. js/config.js 설정을 확인해 주세요.</p>';
   }
 }
+
+document.getElementById('pdf-download-btn').addEventListener('click', function () {
+  const filename = `공동명의특례신청서_${currentReceptionNumber || '접수번호미상'}.pdf`;
+  downloadElementAsPdf(document.getElementById('print-root'), filename, this);
+});
 
 function render(row, f) {
   const today = new Date();

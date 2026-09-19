@@ -231,14 +231,38 @@ function setupItemGroup(buildFn, wrapId, addBtnId, prefix, onChange, maxRows) {
 
   let visibleCount = 1;
   const addBtn = document.getElementById(addBtnId);
+
+  function revealUpTo(n) {
+    while (visibleCount <= n && visibleCount < maxRows) {
+      const row = document.getElementById(`${prefix}-row-${visibleCount}`);
+      if (row) row.style.display = 'block';
+      visibleCount++;
+    }
+    if (visibleCount >= maxRows) addBtn.style.display = 'none';
+  }
+
   addBtn.addEventListener('click', () => {
     if (visibleCount >= maxRows) { addBtn.style.display = 'none'; return; }
-    document.getElementById(`${prefix}-row-${visibleCount}`).style.display = 'block';
-    visibleCount++;
-    if (visibleCount >= maxRows) addBtn.style.display = 'none';
+    revealUpTo(visibleCount);
   });
 
   wrap.addEventListener('input', onChange);
+
+  return { revealUpTo };
+}
+
+/**
+ * 값이 입력돼 있는 가장 마지막 행까지 펼쳐 보여준다 (임시저장 복원용).
+ */
+function revealRowsWithData(groupHandle, prefix, maxRows) {
+  let highest = -1;
+  for (let i = 0; i < maxRows; i++) {
+    const row = document.getElementById(`${prefix}-row-${i}`);
+    if (!row) continue;
+    const hasData = Array.from(row.querySelectorAll('input')).some(inp => inp.value && inp.value.trim() !== '');
+    if (hasData) highest = i;
+  }
+  if (highest >= 0) groupHandle.revealUpTo(highest);
 }
 
 function readRefundRows(maxRows) {
@@ -298,8 +322,8 @@ function updateBalance() {
   if (balEl) balEl.textContent = (refundTotal - offsetTotal).toLocaleString('ko-KR');
 }
 
-setupItemGroup(buildRefundRowHtml, 'refund-items-wrap', 'add-refund-item-btn', 'refund', updateRefundTotal, 3);
-setupItemGroup(buildOffsetRowHtml, 'offset-items-wrap', 'add-offset-item-btn', 'offset', updateOffsetTotal, 3);
+const refundGroup = setupItemGroup(buildRefundRowHtml, 'refund-items-wrap', 'add-refund-item-btn', 'refund', updateRefundTotal, 3);
+const offsetGroup = setupItemGroup(buildOffsetRowHtml, 'offset-items-wrap', 'add-offset-item-btn', 'offset', updateOffsetTotal, 3);
 
 /* ---------- 하이픈 자동입력 / 주소검색 ---------- */
 attachRRNFormatter(document.getElementById('claimant_rrn'));
@@ -449,6 +473,8 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   try {
     const payload = collectPayload();
     const receptionNumber = await submitFormC(payload);
+    unloadGuard.markClean();
+    clearDraftFromSession(DRAFT_KEY);
     sessionStorage.setItem('lastReceptionNumber', receptionNumber);
     window.location.href = 'complete.html';
   } catch (err) {
@@ -461,6 +487,34 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   }
 });
 
+// ---------- 임시저장 / 이탈방지 초기화 ----------
+const DRAFT_KEY = 'draft_form_c';
+const mainFormEl = document.getElementById('main-form');
+const unloadGuard = setupUnloadGuard();
+
+mainFormEl.addEventListener('input', () => {
+  unloadGuard.markDirty();
+  saveDraftToSession(DRAFT_KEY, mainFormEl, currentStep);
+});
+mainFormEl.addEventListener('change', () => {
+  unloadGuard.markDirty();
+  saveDraftToSession(DRAFT_KEY, mainFormEl, currentStep);
+});
+
+const restoredDraft = loadDraftIfConfirmed(DRAFT_KEY);
+if (restoredDraft) {
+  restoreFormDraft(mainFormEl, restoredDraft);
+  // 체크박스 값 복원은 'change' 이벤트를 자동으로 일으키지 않으므로 화면 상태를 직접 재동기화
+  document.getElementById('agent-fields').style.display =
+    document.getElementById('has_agent').checked ? 'block' : 'none';
+  revealRowsWithData(refundGroup, 'refund', 3);
+  revealRowsWithData(offsetGroup, 'offset', 3);
+  updateRefundTotal();
+  updateOffsetTotal();
+  unloadGuard.markDirty();
+}
+// 저장했던 단계로 바로 이동하지 않고 항상 1단계부터 시작한다.
+// (서명 등 필수 검증을 건너뛴 채 뒷단계로 넘어가는 것을 방지하기 위함)
 goToStep(1);
 </script>
 </body>
