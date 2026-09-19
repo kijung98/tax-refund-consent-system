@@ -8,8 +8,10 @@
 <link rel="stylesheet" href="../css/mobile.css">
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/supabase-client.js"></script>
+<script src="../js/form-utils.js"></script>
 </head>
 <body>
 <div class="mobile-container">
@@ -84,8 +86,12 @@
 
       <div class="field">
         <label class="required">주소</label>
-        <input type="text" id="applicant_address" placeholder="예: 인천광역시 ○○구 ○○로 12">
-        <div class="error-msg">주소를 입력해 주세요.</div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="applicant_address" placeholder="주소검색을 눌러주세요" readonly style="background:#F5F7FA;">
+          <button type="button" class="btn btn-secondary btn-sm" id="applicant_address_search_btn" style="flex-shrink:0;">주소검색</button>
+        </div>
+        <input type="text" id="applicant_address_detail" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+        <div class="error-msg">주소를 검색해서 선택해 주세요.</div>
       </div>
 
       <div class="field">
@@ -332,6 +338,17 @@ function syncTaxpayerFields() {
 sameCheckbox.addEventListener('change', syncTaxpayerFields);
 syncTaxpayerFields();
 
+/* ---------- 하이픈 자동입력 / 주소검색 ---------- */
+attachRRNFormatter(document.getElementById('applicant_rrn'));
+attachRRNFormatter(document.getElementById('taxpayer_rrn'));
+attachRRNFormatter(document.getElementById('spouse_rrn'));
+attachPhoneFormatter(document.getElementById('applicant_phone'));
+attachAddressSearch(
+  document.getElementById('applicant_address_search_btn'),
+  document.getElementById('applicant_address'),
+  document.getElementById('applicant_address_detail')
+);
+
 /* ---------- 전자서명 ---------- */
 const canvas = document.getElementById('signature-canvas');
 const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#1B1B1B' });
@@ -395,7 +412,7 @@ function collectPayload() {
   return {
     applicant_name: applicantName,
     applicant_rrn: applicantRrn,
-    applicant_address: document.getElementById('applicant_address').value.trim(),
+    applicant_address: [document.getElementById('applicant_address').value.trim(), document.getElementById('applicant_address_detail').value.trim()].filter(Boolean).join(' '),
     applicant_phone: document.getElementById('applicant_phone').value.trim(),
     request_type: document.querySelector('input[name="request_type"]:checked')?.value || '',
     taxpayer_name: same ? applicantName : document.getElementById('taxpayer_name').value.trim(),
@@ -426,7 +443,8 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     window.location.href = 'complete.html';
   } catch (err) {
     console.error(err);
-    errBox.textContent = '제출 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+    errBox.innerHTML = '제출 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      + `<div style="margin-top:6px; font-size:11px; color:#999;">(개발 확인용) ${(err && err.message) || err}</div>`;
     errBox.style.display = 'block';
     btn.disabled = false;
     btn.textContent = '제출하기';

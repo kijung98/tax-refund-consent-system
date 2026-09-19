@@ -3,31 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR 코드 생성</title>
+<title>QR 코드 생성 · 링크 전송</title>
 <link rel="stylesheet" href="../css/common.css">
 <link rel="stylesheet" href="../css/admin.css">
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<!-- QR 라이브러리는 두 번 로드 (안정성 확보):
+     1) 주력: cdnjs (전 세계 CDN, 국내 접속 가장 안정)
+     2) 백업: jsdelivr — 주력이 실패했을 때만 로드 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  .qr-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 16px; }
+  .qr-actions .btn { padding: 12px; font-size: 14px; }
+  .link-preview {
+    background: #F5F7FA; border-radius: 8px; padding: 12px 14px;
+    font-size: 13px; word-break: break-all; margin-top: 12px;
+    font-family: 'Consolas', monospace;
+  }
+  #qrcode { display: inline-block; padding: 10px; background: #fff; }
+  #qrcode img { display: block; }
+  .copy-toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.85); color: #fff; padding: 12px 20px;
+    border-radius: 8px; font-size: 14px; z-index: 100;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .copy-toast.show { opacity: 1; }
+</style>
 </head>
 <body>
-<div class="admin-layout" style="max-width:560px;">
+<div class="admin-layout" style="max-width:600px;">
 
   <div class="detail-header">
     <div>
       <a href="index.html" class="text-sm">&larr; 목록으로</a>
-      <h1 style="margin-top:6px;">QR 코드 생성</h1>
+      <h1 style="margin-top:6px;">QR 코드 생성 · 링크 전송</h1>
     </div>
   </div>
 
   <div class="detail-section">
     <p class="text-sm text-muted" style="margin-bottom:16px;">
-      납세자에게 안내할 링크의 QR코드를 생성합니다. 참조번호(선택)를 입력하면
-      링크에 자동으로 포함되어, 납세자가 접속 시 별도 입력 없이 확인할 수 있습니다.
+      납세자에게 안내할 링크를 QR코드로 생성하고, 카카오톡·문자·이메일로 바로 전송할 수 있습니다.
+      참조번호(선택)를 넣으면 세무서 내부 관리용 번호가 링크에 포함되어, 납세자 제출 이력을 구분하기 좋습니다.
     </p>
 
     <div class="field">
-      <label>납세자 접속 페이지 기본 주소</label>
-      <input type="text" id="base-url" placeholder="https://your-github-id.github.io/tax-refund-consent/taxpayer/index.html">
-      <div class="hint">GitHub Pages 배포 후 주소를 이곳에 입력하세요. (README 참고)</div>
+      <label>납세자 접속 페이지 주소</label>
+      <input type="text" id="base-url" placeholder="자동 입력됩니다">
+      <div class="hint">현재 페이지 기준으로 자동 입력됩니다. 다른 도메인을 쓰신다면 직접 수정하세요.</div>
     </div>
 
     <div class="field">
@@ -36,39 +58,206 @@
     </div>
 
     <button class="btn btn-primary btn-block" id="generate-btn">QR 생성</button>
+
+    <div id="load-error" class="error-box" style="display:none; margin-top:16px;">
+      QR 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.
+    </div>
   </div>
 
   <div class="detail-section text-center" id="qr-result" style="display:none;">
-    <canvas id="qr-canvas"></canvas>
-    <p class="text-sm" id="final-url" style="word-break:break-all; margin-top:12px;"></p>
-    <button class="btn btn-secondary btn-sm" id="download-qr-btn">QR 이미지 저장</button>
+    <div id="qrcode"></div>
+    <div class="link-preview" id="final-url"></div>
+
+    <div class="qr-actions">
+      <button class="btn btn-secondary btn-sm" id="download-qr-btn">QR 이미지 저장</button>
+      <button class="btn btn-secondary btn-sm" id="copy-link-btn">링크 복사</button>
+      <a class="btn btn-secondary btn-sm" id="kakao-share-btn" target="_blank" rel="noopener">카카오톡 공유</a>
+      <a class="btn btn-secondary btn-sm" id="sms-btn">문자 보내기</a>
+      <a class="btn btn-secondary btn-sm" id="email-btn">이메일 보내기</a>
+    </div>
+
+    <p class="text-sm text-muted" style="margin-top:20px;">
+      💡 실무 팁: 카카오톡에서는 QR 이미지를 저장한 뒤 상대방과의 채팅창에 이미지+링크를 함께 보내는 것이
+      가장 확실합니다 (아래 <b>기본 안내문</b>도 참고).
+    </p>
+  </div>
+
+  <div class="detail-section" id="template-section" style="display:none;">
+    <h3 style="font-size:15px;">기본 안내문 (복사해서 사용)</h3>
+    <textarea id="template-text" rows="6" style="width:100%; padding:12px; border:1px solid var(--color-border); border-radius:8px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
+    <button class="btn btn-secondary btn-sm" id="copy-template-btn" style="margin-top:10px;">안내문 복사</button>
   </div>
 
 </div>
 
+<div class="copy-toast" id="copy-toast">복사되었습니다</div>
+
 <script>
-document.getElementById('generate-btn').addEventListener('click', () => {
+// ==========================================================
+// QR 라이브러리 로드 확인 & 백업 로드
+// ==========================================================
+function isQrLibLoaded() { return typeof QRCode !== 'undefined'; }
+
+function loadBackupQrLib() {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureQrLib() {
+  if (isQrLibLoaded()) return true;
+  try { await loadBackupQrLib(); return isQrLibLoaded(); }
+  catch (e) { return false; }
+}
+
+// ==========================================================
+// 기본 URL 자동입력
+// - 관리자 페이지가 https://.../tax-refund-consent/admin/qr.html 이므로
+//   같은 도메인의 https://.../tax-refund-consent/taxpayer/index.html 로 유추한다.
+// ==========================================================
+function guessTaxpayerUrl() {
+  const url = new URL(window.location.href);
+  // admin/qr.html → taxpayer/index.html
+  const path = url.pathname.replace(/admin\/qr\.html$/, 'taxpayer/index.html');
+  return `${url.origin}${path}`;
+}
+
+document.getElementById('base-url').value = guessTaxpayerUrl();
+
+// ==========================================================
+// QR 생성
+// ==========================================================
+let currentUrl = '';
+
+document.getElementById('generate-btn').addEventListener('click', async () => {
+  const libOk = await ensureQrLib();
+  if (!libOk) {
+    document.getElementById('load-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('load-error').style.display = 'none';
+
   const base = document.getElementById('base-url').value.trim();
   const ref = document.getElementById('ref-input').value.trim();
 
   if (!base) { alert('납세자 접속 페이지 주소를 입력해 주세요.'); return; }
 
-  const url = ref ? `${base}?ref=${encodeURIComponent(ref)}` : base;
+  currentUrl = ref ? `${base}?ref=${encodeURIComponent(ref)}` : base;
 
-  const canvas = document.getElementById('qr-canvas');
-  QRCode.toCanvas(canvas, url, { width: 260, margin: 2 }, function (error) {
-    if (error) { console.error(error); alert('QR 생성 중 오류가 발생했습니다.'); return; }
-    document.getElementById('qr-result').style.display = 'block';
-    document.getElementById('final-url').textContent = url;
+  const container = document.getElementById('qrcode');
+  container.innerHTML = ''; // 이전 QR 제거
+  new QRCode(container, {
+    text: currentUrl,
+    width: 240,
+    height: 240,
+    correctLevel: QRCode.CorrectLevel.M
   });
+
+  document.getElementById('final-url').textContent = currentUrl;
+  document.getElementById('qr-result').style.display = 'block';
+
+  setupShareButtons(currentUrl);
+  setupTemplate(currentUrl, ref);
 });
 
+// ==========================================================
+// 이미지 저장
+// canvas 또는 img 중 존재하는 것을 저장
+// ==========================================================
 document.getElementById('download-qr-btn').addEventListener('click', () => {
-  const canvas = document.getElementById('qr-canvas');
+  const container = document.getElementById('qrcode');
+  const canvas = container.querySelector('canvas');
+  const img = container.querySelector('img');
+
+  let dataUrl;
+  if (canvas) {
+    dataUrl = canvas.toDataURL('image/png');
+  } else if (img) {
+    dataUrl = img.src;
+  } else {
+    alert('QR 이미지를 찾을 수 없습니다.');
+    return;
+  }
+
   const link = document.createElement('a');
-  link.download = 'qr-code.png';
-  link.href = canvas.toDataURL('image/png');
+  const ref = document.getElementById('ref-input').value.trim();
+  link.download = `국세환급금동의서_QR${ref ? '_' + ref : ''}.png`;
+  link.href = dataUrl;
   link.click();
+});
+
+// ==========================================================
+// 링크 복사
+// ==========================================================
+function showToast(msg) {
+  const toast = document.getElementById('copy-toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1500);
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('복사되었습니다');
+  } catch (e) {
+    // 구형 브라우저 폴백
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('복사되었습니다'); }
+    catch (e2) { alert('복사에 실패했습니다. 아래 링크를 직접 복사해 주세요:\n\n' + text); }
+    document.body.removeChild(ta);
+  }
+}
+
+document.getElementById('copy-link-btn').addEventListener('click', () => copyText(currentUrl));
+
+// ==========================================================
+// 카카오톡 / 문자 / 이메일 공유 링크 세팅
+// ==========================================================
+function setupShareButtons(url) {
+  const message = `[국세환급금 동의서 온라인 작성]\n아래 링크에서 스마트폰으로 간편하게 작성해 주세요.\n\n${url}`;
+
+  // 카카오톡: 앱 딥링크(모바일)와 카카오톡 공유 웹뷰 병행. 일반적으로 pc에서는 "카카오톡 나에게 보내기" 경로로 유도
+  // → 가장 확실한 방법은 링크 복사 후 붙여넣기이므로, 카카오톡 버튼은 카카오톡 웹 공유 창을 연다.
+  document.getElementById('kakao-share-btn').href = `https://sharer.kakao.com/talk/friends/picker/link?app_key=&url=${encodeURIComponent(url)}`;
+
+  // 문자 (SMS) - iOS/안드로이드에서 문자앱이 자동으로 열린다
+  document.getElementById('sms-btn').href = `sms:?&body=${encodeURIComponent(message)}`;
+
+  // 이메일 - 기본 메일앱이 열린다
+  document.getElementById('email-btn').href = `mailto:?subject=${encodeURIComponent('국세환급금 동의서 온라인 작성 링크')}&body=${encodeURIComponent(message)}`;
+}
+
+// ==========================================================
+// 기본 안내문 템플릿
+// ==========================================================
+function setupTemplate(url, ref) {
+  const template =
+`[국세환급금 동의서 온라인 작성 안내]
+
+안녕하세요, 세무서입니다.
+국세환급금 관련 동의서를 아래 링크에서 스마트폰으로 간편하게 작성해 주세요.
+
+▶ 작성 링크: ${url}
+${ref ? `▶ 참조번호: ${ref}\n` : ''}
+※ 소요시간: 약 5분
+※ 작성 완료 후 나오는 접수번호를 보관해 주세요.
+
+문의사항은 세무서로 연락 주시기 바랍니다.`;
+
+  document.getElementById('template-text').value = template;
+  document.getElementById('template-section').style.display = 'block';
+}
+
+document.getElementById('copy-template-btn').addEventListener('click', () => {
+  copyText(document.getElementById('template-text').value);
 });
 </script>
 </body>

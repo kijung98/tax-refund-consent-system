@@ -8,8 +8,10 @@
 <link rel="stylesheet" href="../css/mobile.css">
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/supabase-client.js"></script>
+<script src="../js/form-utils.js"></script>
 <style>
   .item-row { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
   .item-row .field { margin-bottom: 10px; }
@@ -66,8 +68,12 @@
       </div>
       <div class="field">
         <label class="required">주소(사업장 소재지)</label>
-        <input type="text" id="claimant_address" placeholder="예: 인천광역시 ○○구 ○○로 12">
-        <div class="error-msg">주소를 입력해 주세요.</div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="claimant_address" placeholder="주소검색을 눌러주세요" readonly style="background:#F5F7FA;">
+          <button type="button" class="btn btn-secondary btn-sm" id="claimant_address_search_btn" style="flex-shrink:0;">주소검색</button>
+        </div>
+        <input type="text" id="claimant_address_detail" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+        <div class="error-msg">주소를 검색해서 선택해 주세요.</div>
       </div>
       <div class="field">
         <label class="required">전화번호</label>
@@ -295,6 +301,16 @@ function updateBalance() {
 setupItemGroup(buildRefundRowHtml, 'refund-items-wrap', 'add-refund-item-btn', 'refund', updateRefundTotal, 3);
 setupItemGroup(buildOffsetRowHtml, 'offset-items-wrap', 'add-offset-item-btn', 'offset', updateOffsetTotal, 3);
 
+/* ---------- 하이픈 자동입력 / 주소검색 ---------- */
+attachRRNFormatter(document.getElementById('claimant_rrn'));
+attachPhoneFormatter(document.getElementById('claimant_phone'));
+attachPhoneFormatter(document.getElementById('agent_phone'));
+attachAddressSearch(
+  document.getElementById('claimant_address_search_btn'),
+  document.getElementById('claimant_address'),
+  document.getElementById('claimant_address_detail')
+);
+
 /* ---------- 전자서명 ---------- */
 const canvas = document.getElementById('signature-canvas');
 const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#1B1B1B' });
@@ -395,7 +411,7 @@ function collectPayload() {
     claimant_name: document.getElementById('claimant_name').value.trim(),
     claimant_rrn: document.getElementById('claimant_rrn').value.trim(),
     claimant_biz_no: document.getElementById('claimant_biz_no').value.trim(),
-    claimant_address: document.getElementById('claimant_address').value.trim(),
+    claimant_address: [document.getElementById('claimant_address').value.trim(), document.getElementById('claimant_address_detail').value.trim()].filter(Boolean).join(' '),
     claimant_phone: document.getElementById('claimant_phone').value.trim(),
     refund_items: refundItems,
     offset_items: offsetItems,
@@ -437,7 +453,8 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     window.location.href = 'complete.html';
   } catch (err) {
     console.error(err);
-    errBox.textContent = '제출 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+    errBox.innerHTML = '제출 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      + `<div style="margin-top:6px; font-size:11px; color:#999;">(개발 확인용) ${(err && err.message) || err}</div>`;
     errBox.style.display = 'block';
     btn.disabled = false;
     btn.textContent = '제출하기';

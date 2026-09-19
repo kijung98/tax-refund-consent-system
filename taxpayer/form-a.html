@@ -8,8 +8,10 @@
 <link rel="stylesheet" href="../css/mobile.css">
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/supabase-client.js"></script>
+<script src="../js/form-utils.js"></script>
 <style>
   .item-row { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
   .item-row .field { margin-bottom: 10px; }
@@ -68,8 +70,12 @@
       </div>
       <div class="field">
         <label class="required">주소(사업장 소재지)</label>
-        <input type="text" id="transferor_address" placeholder="예: 인천광역시 ○○구 ○○로 12">
-        <div class="error-msg">주소를 입력해 주세요.</div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="transferor_address" placeholder="주소검색을 눌러주세요" readonly style="background:#F5F7FA;">
+          <button type="button" class="btn btn-secondary btn-sm" id="transferor_address_search_btn" style="flex-shrink:0;">주소검색</button>
+        </div>
+        <input type="text" id="transferor_address_detail" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+        <div class="error-msg">주소를 검색해서 선택해 주세요.</div>
       </div>
       <div class="field">
         <label class="required">전화번호</label>
@@ -98,8 +104,12 @@
       </div>
       <div class="field">
         <label class="required">주소(사업장 소재지)</label>
-        <input type="text" id="transferee_address" placeholder="예: 인천광역시 ○○구 ○○로 12">
-        <div class="error-msg">주소를 입력해 주세요.</div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="transferee_address" placeholder="주소검색을 눌러주세요" readonly style="background:#F5F7FA;">
+          <button type="button" class="btn btn-secondary btn-sm" id="transferee_address_search_btn" style="flex-shrink:0;">주소검색</button>
+        </div>
+        <input type="text" id="transferee_address_detail" placeholder="상세주소 (동/호수 등)" style="margin-top:8px;">
+        <div class="error-msg">주소를 검색해서 선택해 주세요.</div>
       </div>
       <div class="field">
         <label class="required">전화번호</label>
@@ -278,6 +288,22 @@ document.getElementById('transfer_full_amount').addEventListener('change', funct
   document.getElementById('transfer-amount-section').style.display = this.checked ? 'none' : 'block';
 });
 
+/* ---------- 하이픈 자동입력 / 주소검색 ---------- */
+attachRRNFormatter(document.getElementById('transferor_rrn'));
+attachRRNFormatter(document.getElementById('transferee_rrn'));
+attachPhoneFormatter(document.getElementById('transferor_phone'));
+attachPhoneFormatter(document.getElementById('transferee_phone'));
+attachAddressSearch(
+  document.getElementById('transferor_address_search_btn'),
+  document.getElementById('transferor_address'),
+  document.getElementById('transferor_address_detail')
+);
+attachAddressSearch(
+  document.getElementById('transferee_address_search_btn'),
+  document.getElementById('transferee_address'),
+  document.getElementById('transferee_address_detail')
+);
+
 /* ---------- 전자서명 (2개) ---------- */
 function createSignaturePad(canvasId, wrapId) {
   const canvas = document.getElementById(canvasId);
@@ -395,12 +421,12 @@ function collectPayload() {
     transferor_name: document.getElementById('transferor_name').value.trim(),
     transferor_rrn: document.getElementById('transferor_rrn').value.trim(),
     transferor_biz_no: document.getElementById('transferor_biz_no').value.trim(),
-    transferor_address: document.getElementById('transferor_address').value.trim(),
+    transferor_address: [document.getElementById('transferor_address').value.trim(), document.getElementById('transferor_address_detail').value.trim()].filter(Boolean).join(' '),
     transferor_phone: document.getElementById('transferor_phone').value.trim(),
     transferee_name: document.getElementById('transferee_name').value.trim(),
     transferee_rrn: document.getElementById('transferee_rrn').value.trim(),
     transferee_biz_no: document.getElementById('transferee_biz_no').value.trim(),
-    transferee_address: document.getElementById('transferee_address').value.trim(),
+    transferee_address: [document.getElementById('transferee_address').value.trim(), document.getElementById('transferee_address_detail').value.trim()].filter(Boolean).join(' '),
     transferee_phone: document.getElementById('transferee_phone').value.trim(),
     refund_items: refundItems,
     transfer_amount_items: transferItems,
@@ -440,7 +466,8 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     window.location.href = 'complete.html';
   } catch (err) {
     console.error(err);
-    errBox.textContent = '제출 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+    errBox.innerHTML = '제출 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      + `<div style="margin-top:6px; font-size:11px; color:#999;">(개발 확인용) ${(err && err.message) || err}</div>`;
     errBox.style.display = 'block';
     btn.disabled = false;
     btn.textContent = '제출하기';
