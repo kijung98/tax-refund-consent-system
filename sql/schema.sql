@@ -142,18 +142,33 @@ create table if not exists form_c_offset (
 );
 
 -- ------------------------------------------------------------
--- 6. 주민등록번호 암호화 — 키 설정 (⭐ 반드시 한 번 실행 필요)
+-- 6. 주민등록번호 암호화 — 키 저장용 테이블 (⭐ 반드시 한 번 설정 필요)
 -- ------------------------------------------------------------
--- 아래 한 줄을 실행해서 암호화에 쓸 비밀키를 DB에 설정하세요.
--- 이 키는 브라우저(js/config.js 등)에는 절대 들어가지 않고, DB 안에만 존재합니다.
+-- Supabase 호스팅 환경에서는 SQL Editor에서도 `alter database ... set app.xxx = ...`
+-- 같은 DB 레벨 커스텀 설정을 저장할 권한이 없습니다 (42501 permission denied 오류).
+-- 그래서 암호화 키는 별도의 비공개 테이블(app_secrets)에 저장하고, RLS로 외부
+-- (API)에서는 절대 조회하지 못하게 막은 뒤, 아래 함수들 내부에서만 읽도록 합니다.
+
+create table if not exists app_secrets (
+  key_name text primary key,
+  key_value text not null
+);
+
+alter table app_secrets enable row level security;
+-- 이 테이블에는 정책(policy)을 일부러 하나도 만들지 않는다.
+-- -> 관리자로 로그인해도 API(PostgREST)로는 이 테이블을 절대 조회/수정할 수 없다.
+-- -> 오직 아래 SECURITY DEFINER 함수(소유자 postgres) 내부에서만 접근 가능하다.
+revoke all on app_secrets from anon, authenticated;
+
+-- ⭐ 아래 명령을 실행해서 암호화 키를 저장하세요 (이 INSERT 문 자체는 schema.sql에
+-- 포함되어 있지 않습니다 - 반드시 직접 키 값을 정해서 별도로 실행해야 합니다).
 -- 'REPLACE_WITH_YOUR_OWN_SECRET_KEY' 부분을 충분히 길고 복잡한 문자열로 바꿔서 실행하세요.
--- (예: 영문+숫자+특수문자 20자 이상. 키를 잊어버리면 기존 암호화된 데이터를 복호화할 수 없습니다 —
+-- (예: 영문+숫자 20자 이상. 키를 잊어버리면 기존 암호화된 데이터를 복호화할 수 없습니다 —
 --  꼭 별도의 안전한 곳에 키를 메모해 두세요.)
 --
---   alter database postgres set app.encryption_key = 'REPLACE_WITH_YOUR_OWN_SECRET_KEY';
---
--- ⚠️ 위 명령은 이 schema.sql 파일에 자동 포함되어 있지 않습니다. 반드시 직접 키 값을
--- 정해서 SQL Editor에 따로 한 번 실행해 주세요 (전체 스키마 실행 전이든 후든 상관없습니다).
+--   insert into app_secrets (key_name, key_value)
+--   values ('encryption_key', 'REPLACE_WITH_YOUR_OWN_SECRET_KEY')
+--   on conflict (key_name) do update set key_value = excluded.key_value;
 
 -- ------------------------------------------------------------
 -- 6-1. 납세자 제출용 함수 (암호화 후 저장)
@@ -169,12 +184,12 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_key text := current_setting('app.encryption_key', true);
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
   v_reception_number text;
   v_submission_id uuid;
 begin
   if v_key is null or v_key = '' then
-    raise exception '암호화 키가 설정되지 않았습니다. schema.sql 6번 안내대로 app.encryption_key를 먼저 설정해 주세요.';
+    raise exception '암호화 키가 설정되지 않았습니다. schema.sql 6번 안내대로 app_secrets 테이블에 encryption_key 값을 먼저 넣어 주세요.';
   end if;
 
   v_reception_number := generate_reception_number();
@@ -218,12 +233,12 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_key text := current_setting('app.encryption_key', true);
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
   v_reception_number text;
   v_submission_id uuid;
 begin
   if v_key is null or v_key = '' then
-    raise exception '암호화 키가 설정되지 않았습니다. schema.sql 6번 안내대로 app.encryption_key를 먼저 설정해 주세요.';
+    raise exception '암호화 키가 설정되지 않았습니다. schema.sql 6번 안내대로 app_secrets 테이블에 encryption_key 값을 먼저 넣어 주세요.';
   end if;
 
   v_reception_number := generate_reception_number();
@@ -267,12 +282,12 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_key text := current_setting('app.encryption_key', true);
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
   v_reception_number text;
   v_submission_id uuid;
 begin
   if v_key is null or v_key = '' then
-    raise exception '암호화 키가 설정되지 않았습니다. schema.sql 6번 안내대로 app.encryption_key를 먼저 설정해 주세요.';
+    raise exception '암호화 키가 설정되지 않았습니다. schema.sql 6번 안내대로 app_secrets 테이블에 encryption_key 값을 먼저 넣어 주세요.';
   end if;
 
   v_reception_number := generate_reception_number();
@@ -328,13 +343,13 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_key text := current_setting('app.encryption_key', true);
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
 begin
   if auth.role() <> 'authenticated' then
     raise exception '관리자 로그인이 필요합니다.';
   end if;
   if v_key is null or v_key = '' then
-    raise exception '암호화 키가 설정되지 않았습니다. schema.sql 6번 안내대로 app.encryption_key를 먼저 설정해 주세요.';
+    raise exception '암호화 키가 설정되지 않았습니다. schema.sql 6번 안내대로 app_secrets 테이블에 encryption_key 값을 먼저 넣어 주세요.';
   end if;
 
   return query

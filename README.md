@@ -71,24 +71,33 @@ tax-refund-consent/
 1. https://supabase.com 접속 → 무료 계정 생성 → 새 프로젝트(Project) 생성
    (리전은 Northeast Asia(Seoul) 권장)
 2. 프로젝트 생성 완료 후, 왼쪽 메뉴에서 **SQL Editor** 클릭
-3. 주민등록번호 암호화 키를 먼저 설정합니다 (10번 "주민등록번호 암호화 설정 방법" 참고):
-   ```sql
-   alter database postgres set app.encryption_key = '본인이_정한_비밀키';
-   ```
-4. 이 저장소의 `sql/schema.sql` 파일 내용 전체를 복사 → SQL Editor에 붙여넣기 → **Run** 실행
+3. 이 저장소의 `sql/schema.sql` 파일 내용 전체를 복사 → SQL Editor에 붙여넣기 → **Run** 실행
    - 실행 후 왼쪽 **Table Editor** 메뉴에서 `submissions`, `form_b_joint_home` 등
      테이블이 생성되었는지 확인합니다.
-5. 왼쪽 메뉴 **Project Settings → API** 이동
+4. 주민등록번호 암호화 키를 설정합니다 (10번 "주민등록번호 암호화 설정 방법" 참고):
+   ```sql
+   insert into app_secrets (key_name, key_value)
+   values ('encryption_key', '본인이_정한_비밀키')
+   on conflict (key_name) do update set key_value = excluded.key_value;
+   ```
+5. 왼쪽 메뉴 **Project Settings → API Keys** 이동
    - **Project URL** 값을 복사 → `js/config.js` 의 `url` 에 붙여넣기
-   - **anon public** 키 값을 복사 → `js/config.js` 의 `anonKey` 에 붙여넣기
+   - **Publishable key** (`sb_publishable_...`로 시작, 예전 이름 "anon public") 값을
+     복사 → `js/config.js` 의 `anonKey` 에 붙여넣기
+   - 화면에 "Publishable and secret API keys" 탭과 "Legacy anon, service_role
+     API keys" 탭 두 개가 보일 수 있습니다. 어느 탭이든 **"Publishable"** 또는
+     **"anon"**이라고 적힌 키를 쓰면 됩니다.
+   - 🚫 **"Secret key"(`sb_secret_...`) 또는 "service_role" 키는 절대 넣지
+     마세요.** 이 키는 보안 규칙을 모두 무시하는 관리자 권한 키라서, 공개
+     저장소에 올라가는 이 파일에 넣으면 전체 데이터가 노출됩니다.
 6. 관리자 계정을 만듭니다 (9번 "관리자 로그인 설정 방법" 참고) — 로그인 없이는
    관리자 화면에서 데이터가 보이지 않습니다.
 7. `admin/login.html`을 열어 방금 만든 계정으로 로그인 → `admin/index.html`에서
    목록이 정상적으로 불러와지는지(빈 목록이라도 오류가 없는지) 확인합니다.
 
 ### 환경변수/키 관리 주의사항
-- `anonKey`는 Supabase 설계상 "브라우저에 노출되어도 되는" 공개키입니다. 실제 데이터
-  조회·수정은 관리자 로그인 여부로 RLS가 걸려있어 anonKey만으로는 조회할 수 없습니다.
+- `anonKey`(Publishable key)는 Supabase 설계상 "브라우저에 노출되어도 되는" 공개키입니다.
+  실제 데이터 조회·수정은 관리자 로그인 여부로 RLS가 걸려있어 이 키만으로는 조회할 수 없습니다.
 - 더 안전하게 하려면 GitHub 저장소를 **Private**로 만들고 GitHub Pages 대신
   사설 호스팅(또는 조직 내부망)을 사용하는 것도 고려하세요.
 
@@ -223,26 +232,36 @@ Supabase SQL Editor에서 실행해 주세요 (기존 접수 데이터가 유지
 
 주민등록번호는 데이터베이스에 평문(그대로)이 아니라 **암호화된 상태로 저장**됩니다.
 암호화 키는 브라우저 파일(`js/config.js` 등)에는 절대 들어가지 않고, Supabase
-데이터베이스 안에만 존재합니다. 제출할 때 암호화하고, 로그인한 관리자가 조회할
-때만 데이터베이스 안에서 복호화되어 화면에 나타납니다.
+데이터베이스 안의 별도 비공개 테이블(`app_secrets`)에만 존재합니다. 이 테이블은
+API로는 관리자로 로그인해도 절대 조회할 수 없도록 잠가뒀고, 오직 DB 함수 내부
+에서만 접근합니다. 제출할 때 암호화하고, 로그인한 관리자가 조회할 때만 그 함수
+안에서 복호화되어 화면에 나타납니다.
 
-1. Supabase 대시보드 → **SQL Editor**
-2. 아래 명령의 `REPLACE_WITH_YOUR_OWN_SECRET_KEY` 부분을 **직접 정한 비밀키**로 바꿔서 실행:
+> ⚠️ 예전 안내에는 `alter database ... set app.encryption_key = ...` 방식이
+> 적혀 있었는데, Supabase가 보안 정책을 강화하면서 SQL Editor에서 이 명령을
+> 실행할 권한 자체를 막아버렸습니다 (`42501: permission denied` 오류). 그래서
+> 아래처럼 테이블에 저장하는 방식으로 바뀌었습니다 — `schema.sql`에 이미 반영돼
+> 있으니 아래 순서만 따라 하시면 됩니다.
+
+1. Supabase 대시보드 → **SQL Editor** → 새 쿼리
+2. `sql/schema.sql` 전체를 먼저 실행합니다 (아직 안 하셨다면). 이 안에
+   `app_secrets` 테이블이 자동으로 만들어집니다.
+3. 새 쿼리를 하나 더 열고, 아래 명령의 `REPLACE_WITH_YOUR_OWN_SECRET_KEY`
+   부분을 **직접 정한 비밀키**로 바꿔서 실행:
    ```sql
-   alter database postgres set app.encryption_key = 'REPLACE_WITH_YOUR_OWN_SECRET_KEY';
+   insert into app_secrets (key_name, key_value)
+   values ('encryption_key', 'REPLACE_WITH_YOUR_OWN_SECRET_KEY')
+   on conflict (key_name) do update set key_value = excluded.key_value;
    ```
-   - 영문+숫자+특수문자를 섞어 20자 이상으로 만드는 것을 권장합니다.
-   - 예: `Tax2026!Refund#Consent$SecureKey99`
-3. 이 키는 **절대 잊어버리면 안 됩니다.** 키를 잃어버리면 이미 저장된 주민등록번호를
+   - 영문+숫자를 섞어 20자 이상으로 만드는 것을 권장합니다.
+4. 이 키는 **절대 잊어버리면 안 됩니다.** 키를 잃어버리면 이미 저장된 주민등록번호를
    다시는 복호화(원래 값 확인)할 수 없습니다. 회사 비밀번호 관리 도구나 별도의
    안전한 메모장에 꼭 백업해 두세요.
-4. `sql/schema.sql`을 새로 설치하시는 경우, 이 키 설정 다음에 `schema.sql` 전체를
-   실행하면 암호화 관련 함수까지 한 번에 설정됩니다.
 
-⚠️ **이미 예전 스키마(평문 저장)로 설치해서 데이터가 쌓여있는 경우**: 위 1~3번으로
-키를 먼저 설정한 뒤, `sql/migration-002-encrypt-rrn.sql` 파일을 실행하세요.
-기존에 저장돼 있던 주민등록번호도 이 과정에서 함께 암호화로 전환되며, 데이터는
-유지됩니다.
+⚠️ **이미 예전 스키마(평문 저장)로 설치해서 데이터가 쌓여있는 경우**: `schema.sql`을
+처음부터 다시 실행하지 마시고, `sql/migration-002-encrypt-rrn.sql` 파일을 열어서
+2단계의 키 값을 바꾼 뒤 파일 전체를 실행하세요. 기존에 저장돼 있던 주민등록번호도
+이 과정에서 함께 암호화로 전환되며, 데이터는 유지됩니다.
 
 ### 관리자 화면에서 주민등록번호가 보이는 방식
 상세보기 화면에서는 주민등록번호가 기본적으로 `900101-1●●●●●●` 형태로 가려져

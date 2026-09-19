@@ -5,57 +5,77 @@
 -- 저장되어 있었다면, 이 파일을 실행해서 암호화(bytea) 방식으로 전환합니다.
 -- 기존에 저장된 주민등록번호 값도 이 과정에서 함께 암호화됩니다 (데이터 유지).
 --
--- 사용법:
---   1) 아래 키 설정 줄의 값을 원하는 비밀키로 바꿔서 먼저 실행
---   2) 이 파일 나머지 전체를 Supabase SQL Editor에서 실행
+-- ⚠️ Supabase 호스팅 환경에서는 SQL Editor에서도 `alter database ... set app.xxx`
+-- 같은 DB 레벨 커스텀 설정을 저장할 권한이 없습니다 (42501 permission denied).
+-- 그래서 암호화 키는 별도의 비공개 테이블(app_secrets)에 저장합니다.
+--
+-- 사용법: 아래 1~4단계를 SQL Editor에서 순서대로(또는 전체를 한 번에) 실행하세요.
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 1단계: 암호화 키 설정 (⭐ 아래 값을 직접 바꾼 뒤 이 줄만 먼저 실행하세요)
+-- 1단계: 키 저장용 테이블 준비 (외부에서는 절대 조회 불가하도록 잠금)
 -- ------------------------------------------------------------
--- alter database postgres set app.encryption_key = 'REPLACE_WITH_YOUR_OWN_SECRET_KEY';
+create table if not exists app_secrets (
+  key_name text primary key,
+  key_value text not null
+);
+
+alter table app_secrets enable row level security;
+revoke all on app_secrets from anon, authenticated;
+-- 정책(policy)을 하나도 만들지 않으므로, API로는 관리자로 로그인해도 조회 불가.
+-- 오직 SECURITY DEFINER 함수(소유자 postgres) 내부에서만 접근 가능.
 
 -- ------------------------------------------------------------
--- 2단계: 키가 설정됐는지 확인 (설정 안 됐으면 아래에서 바로 오류로 멈춤)
+-- 2단계: 암호화 키 저장 (⭐ 아래 값을 직접 바꿔서 실행하세요)
+-- ------------------------------------------------------------
+insert into app_secrets (key_name, key_value)
+values ('encryption_key', 'REPLACE_WITH_YOUR_OWN_SECRET_KEY')
+on conflict (key_name) do update set key_value = excluded.key_value;
+
+-- ------------------------------------------------------------
+-- 3단계: 키가 제대로 저장됐는지 확인 (안 됐으면 아래에서 오류로 멈춤)
 -- ------------------------------------------------------------
 do $$
 begin
-  if current_setting('app.encryption_key', true) is null
-     or current_setting('app.encryption_key', true) = '' then
-    raise exception '먼저 1단계의 alter database 명령으로 암호화 키를 설정한 뒤 다시 실행해 주세요.';
+  if (select key_value from app_secrets where key_name = 'encryption_key') is null
+     or (select key_value from app_secrets where key_name = 'encryption_key') = ''
+     or (select key_value from app_secrets where key_name = 'encryption_key') = 'REPLACE_WITH_YOUR_OWN_SECRET_KEY' then
+    raise exception '2단계에서 키 값을 실제 비밀키로 바꾸지 않으셨습니다. 먼저 바꿔서 다시 실행해 주세요.';
   end if;
 end $$;
 
 -- ------------------------------------------------------------
--- 3단계: 기존 평문 컬럼을 암호화(bytea)로 전환
+-- 4단계: 기존 평문 컬럼을 암호화(bytea)로 전환
 -- (컬럼이 이미 bytea라면 이 블록은 오류 없이 건너뜁니다)
 -- ------------------------------------------------------------
 do $$
+declare
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
 begin
   if (select data_type from information_schema.columns
       where table_name = 'form_b_joint_home' and column_name = 'applicant_rrn') = 'text' then
     alter table form_b_joint_home
-      alter column applicant_rrn type bytea using pgp_sym_encrypt(applicant_rrn, current_setting('app.encryption_key')),
-      alter column taxpayer_rrn type bytea using pgp_sym_encrypt(taxpayer_rrn, current_setting('app.encryption_key')),
-      alter column spouse_rrn type bytea using pgp_sym_encrypt(spouse_rrn, current_setting('app.encryption_key'));
+      alter column applicant_rrn type bytea using pgp_sym_encrypt(applicant_rrn, v_key),
+      alter column taxpayer_rrn type bytea using pgp_sym_encrypt(taxpayer_rrn, v_key),
+      alter column spouse_rrn type bytea using pgp_sym_encrypt(spouse_rrn, v_key);
   end if;
 
   if (select data_type from information_schema.columns
       where table_name = 'form_a_transfer' and column_name = 'transferor_rrn') = 'text' then
     alter table form_a_transfer
-      alter column transferor_rrn type bytea using pgp_sym_encrypt(transferor_rrn, current_setting('app.encryption_key')),
-      alter column transferee_rrn type bytea using pgp_sym_encrypt(transferee_rrn, current_setting('app.encryption_key'));
+      alter column transferor_rrn type bytea using pgp_sym_encrypt(transferor_rrn, v_key),
+      alter column transferee_rrn type bytea using pgp_sym_encrypt(transferee_rrn, v_key);
   end if;
 
   if (select data_type from information_schema.columns
       where table_name = 'form_c_offset' and column_name = 'claimant_rrn') = 'text' then
     alter table form_c_offset
-      alter column claimant_rrn type bytea using pgp_sym_encrypt(claimant_rrn, current_setting('app.encryption_key'));
+      alter column claimant_rrn type bytea using pgp_sym_encrypt(claimant_rrn, v_key);
   end if;
 end $$;
 
 -- ------------------------------------------------------------
--- 4단계: 제출/조회용 함수 생성 (schema.sql 6번 섹션과 동일한 내용)
+-- 5단계: 제출/조회용 함수 생성 (schema.sql 6번 섹션과 동일한 내용)
 -- ------------------------------------------------------------
 
 create or replace function submit_form_b(payload jsonb)
@@ -65,7 +85,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_key text := current_setting('app.encryption_key', true);
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
   v_reception_number text;
   v_submission_id uuid;
 begin
@@ -114,7 +134,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_key text := current_setting('app.encryption_key', true);
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
   v_reception_number text;
   v_submission_id uuid;
 begin
@@ -163,7 +183,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_key text := current_setting('app.encryption_key', true);
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
   v_reception_number text;
   v_submission_id uuid;
 begin
@@ -213,7 +233,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_key text := current_setting('app.encryption_key', true);
+  v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
 begin
   if auth.role() <> 'authenticated' then
     raise exception '관리자 로그인이 필요합니다.';
