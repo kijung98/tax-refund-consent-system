@@ -44,10 +44,10 @@
       <span class="status" style="color:var(--color-primary-dark);">작성하기 &rarr;</span>
     </a>
 
-    <div class="form-select-item disabled">
+    <a href="form-c.html" class="form-select-item available" id="link-form-c">
       <span class="name">국세환급금 충당청구(동의)서</span>
-      <span class="status text-muted">준비 중</span>
-    </div>
+      <span class="status" style="color:var(--color-primary-dark);">작성하기 &rarr;</span>
+    </a>
   </div>
 </div>
 
@@ -60,6 +60,7 @@
     document.getElementById('ref-display').textContent = ref;
     document.getElementById('link-form-b').href = 'form.html?ref=' + encodeURIComponent(ref);
     document.getElementById('link-form-a').href = 'form-a.html?ref=' + encodeURIComponent(ref);
+    document.getElementById('link-form-c').href = 'form-c.html?ref=' + encodeURIComponent(ref);
   }
 </script>
 </body>

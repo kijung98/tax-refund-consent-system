@@ -113,10 +113,11 @@ function renderTable(rows) {
   tbody.innerHTML = rows.map(row => {
     const b = (row.form_b_joint_home && row.form_b_joint_home[0]) || null;
     const a = (row.form_a_transfer && row.form_a_transfer[0]) || null;
+    const c = (row.form_c_offset && row.form_c_offset[0]) || null;
 
-    const formTypeLabel = b ? '공동명의 특례신청서' : (a ? '양도요구서' : '-');
-    const mainName = b ? (b.applicant_name || '-') : (a ? (a.transferor_name || '-') : '-');
-    const subName = b ? (b.spouse_name || '-') : (a ? (a.transferee_name || '-') : '-');
+    const formTypeLabel = b ? '공동명의 특례신청서' : (a ? '양도요구서' : (c ? '충당청구동의서' : '-'));
+    const mainName = b ? (b.applicant_name || '-') : (a ? (a.transferor_name || '-') : (c ? (c.claimant_name || '-') : '-'));
+    const subName = b ? (b.spouse_name || '-') : (a ? (a.transferee_name || '-') : (c ? (c.agent_name || '-') : '-'));
 
     return `
       <tr>

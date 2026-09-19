@@ -30,12 +30,7 @@ async function generateReceptionNumber() {
   return data;
 }
 
-/**
- * FORM B(공동명의 1주택자 특례신청서) 제출
- * @param {object} payload - form_b_joint_home 테이블 컬럼과 동일한 키를 가진 객체
- * @returns {string} 접수번호
- */
-async function submitFormB(payload) {
+async function insertSubmissionWithForm(tableName, payload) {
   const receptionNumber = await generateReceptionNumber();
 
   const { data: submission, error: subErr } = await supabaseClient
@@ -47,47 +42,45 @@ async function submitFormB(payload) {
   if (subErr) throw subErr;
 
   const { error: formErr } = await supabaseClient
-    .from('form_b_joint_home')
+    .from(tableName)
     .insert({ submission_id: submission.id, ...payload });
 
   if (formErr) throw formErr;
 
   return receptionNumber;
+}
+
+/**
+ * FORM B(공동명의 1주택자 특례신청서) 제출
+ */
+async function submitFormB(payload) {
+  return insertSubmissionWithForm('form_b_joint_home', payload);
 }
 
 /**
  * FORM A(국세환급금양도요구서) 제출
- * @param {object} payload - form_a_transfer 테이블 컬럼과 동일한 키를 가진 객체
- * @returns {string} 접수번호
  */
 async function submitFormA(payload) {
-  const receptionNumber = await generateReceptionNumber();
-
-  const { data: submission, error: subErr } = await supabaseClient
-    .from('submissions')
-    .insert({ reception_number: receptionNumber, status: '신규' })
-    .select()
-    .single();
-
-  if (subErr) throw subErr;
-
-  const { error: formErr } = await supabaseClient
-    .from('form_a_transfer')
-    .insert({ submission_id: submission.id, ...payload });
-
-  if (formErr) throw formErr;
-
-  return receptionNumber;
+  return insertSubmissionWithForm('form_a_transfer', payload);
 }
 
 /**
+ * FORM C(국세환급금 충당청구(동의)서) 제출
+ */
+async function submitFormC(payload) {
+  return insertSubmissionWithForm('form_c_offset', payload);
+}
+
+const SUBMISSION_SELECT = '*, form_b_joint_home(*), form_a_transfer(*), form_c_offset(*)';
+
+/**
  * 관리자: 제출 목록 조회 (검색/필터 포함)
- * FORM A, FORM B 를 모두 함께 가져온다. (한 접수건에는 둘 중 하나만 존재)
+ * FORM A, B, C 를 모두 함께 가져온다. (한 접수건에는 셋 중 하나만 존재)
  */
 async function listSubmissions({ keyword = '', status = '', dateFrom = '', dateTo = '' } = {}) {
   let query = supabaseClient
     .from('submissions')
-    .select('*, form_b_joint_home(*), form_a_transfer(*)')
+    .select(SUBMISSION_SELECT)
     .order('created_at', { ascending: false });
 
   if (status) query = query.eq('status', status);
@@ -103,37 +96,38 @@ async function listSubmissions({ keyword = '', status = '', dateFrom = '', dateT
   return data.filter(row => {
     const b = row.form_b_joint_home?.[0];
     const a = row.form_a_transfer?.[0];
-    const inReception = row.reception_number.includes(kw);
-    if (inReception) return true;
+    const c = row.form_c_offset?.[0];
+    if (row.reception_number.includes(kw)) return true;
 
-    if (b) {
-      if (
-        (b.applicant_name && b.applicant_name.includes(kw)) ||
-        (b.spouse_name && b.spouse_name.includes(kw)) ||
-        (b.taxpayer_name && b.taxpayer_name.includes(kw)) ||
-        (b.applicant_phone && b.applicant_phone.includes(kw))
-      ) return true;
-    }
+    if (b && (
+      (b.applicant_name && b.applicant_name.includes(kw)) ||
+      (b.spouse_name && b.spouse_name.includes(kw)) ||
+      (b.taxpayer_name && b.taxpayer_name.includes(kw)) ||
+      (b.applicant_phone && b.applicant_phone.includes(kw))
+    )) return true;
 
-    if (a) {
-      if (
-        (a.transferor_name && a.transferor_name.includes(kw)) ||
-        (a.transferee_name && a.transferee_name.includes(kw)) ||
-        (a.transferor_phone && a.transferor_phone.includes(kw))
-      ) return true;
-    }
+    if (a && (
+      (a.transferor_name && a.transferor_name.includes(kw)) ||
+      (a.transferee_name && a.transferee_name.includes(kw)) ||
+      (a.transferor_phone && a.transferor_phone.includes(kw))
+    )) return true;
+
+    if (c && (
+      (c.claimant_name && c.claimant_name.includes(kw)) ||
+      (c.claimant_phone && c.claimant_phone.includes(kw))
+    )) return true;
 
     return false;
   });
 }
 
 /**
- * 관리자: 단일 접수건 상세 조회 (FORM A/B 모두 포함해서 가져옴)
+ * 관리자: 단일 접수건 상세 조회 (FORM A/B/C 모두 포함해서 가져옴)
  */
 async function getSubmissionDetail(submissionId) {
   const { data, error } = await supabaseClient
     .from('submissions')
-    .select('*, form_b_joint_home(*), form_a_transfer(*)')
+    .select(SUBMISSION_SELECT)
     .eq('id', submissionId)
     .single();
   if (error) throw error;
