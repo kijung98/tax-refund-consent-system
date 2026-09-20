@@ -27,27 +27,29 @@
 <script>
 const params = new URLSearchParams(window.location.search);
 const submissionId = params.get('id');
+let currentReceptionNumber = '';
 
 function won(n) { return (Number(n) || 0).toLocaleString('ko-KR'); }
+function esc(v) { return v || ''; }
 
-function itemsRowsHtml(items) {
-  const rows = (items && items.length ? items : [{}, {}]).slice(0, 4);
-  while (rows.length < 2) rows.push({});
-  const bodyRows = rows.map(it => `
+function refundItemRows(items, maxRows) {
+  const rows = (items || []).slice(0, maxRows);
+  while (rows.length < maxRows) rows.push({});
+  return rows.map(it => `
     <tr>
-      <td>${it.tax_item || ''}</td>
-      <td>${it.due_date || ''}</td>
+      <td>${esc(it.tax_item)}</td>
+      <td>${esc(it.due_date)}</td>
       <td>${won(it.total)}</td>
       <td>${won(it.national_tax)}</td>
       <td>${won(it.edu_tax)}</td>
       <td>${won(it.surcharge)}</td>
       <td>${won(it.refund_surcharge)}</td>
     </tr>`).join('');
-  const total = (items || []).reduce((s, it) => s + (Number(it.total) || 0), 0);
-  return bodyRows + `<tr><td colspan="2" style="text-align:center; font-weight:700;">계</td><td colspan="5" style="font-weight:700;">${won(total)}</td></tr>`;
 }
 
-let currentReceptionNumber = '';
+function itemsTotal(items) {
+  return (items || []).reduce((s, it) => s + (Number(it.total) || 0), 0);
+}
 
 async function load() {
   const root = document.getElementById('print-root');
@@ -64,55 +66,104 @@ async function load() {
   }
 }
 
-document.getElementById('pdf-download-btn').addEventListener('click', function () {
-  const filename = `국세환급금양도요구서_${currentReceptionNumber || '접수번호미상'}.pdf`;
-  downloadElementAsPdf(document.getElementById('print-root'), filename, this);
-});
-
 function render(row, f) {
   document.getElementById('print-root').innerHTML = `
-    <div class="print-doc-no">■ 국세기본법 시행규칙 [별지 제24호의2서식] (접수번호: ${row.reception_number})</div>
+    <div class="print-doc-no">■ 국세기본법 시행규칙 [별지 제24호의2서식] &lt;개정 2023. 3. 20.&gt;</div>
     <div class="print-title">국세환급금양도요구서</div>
 
     <table class="print-table">
       <tr>
-        <td class="label-cell" rowspan="2">양도자</td>
-        <td class="label-cell">성명(대표자)</td><td>${f.transferor_name || ''}</td>
-        <td class="label-cell">주민등록번호</td><td>${f.transferor_rrn || ''}</td>
+        <th style="width:33%;">접수번호</th>
+        <th style="width:33%;">접수일</th>
+        <th>처리기간</th>
       </tr>
       <tr>
-        <td class="label-cell">사업자등록번호</td><td>${f.transferor_biz_no || ''}</td>
-        <td class="label-cell">주소</td><td>${f.transferor_address || ''} (전화: ${f.transferor_phone || ''})</td>
+        <td>${row.reception_number}</td>
+        <td>${new Date(row.created_at).toLocaleDateString('ko-KR')}</td>
+        <td></td>
       </tr>
     </table>
 
     <table class="print-table">
       <tr>
-        <td class="label-cell" rowspan="2">양수자</td>
-        <td class="label-cell">성명(대표자)</td><td>${f.transferee_name || ''}</td>
-        <td class="label-cell">주민등록번호</td><td>${f.transferee_rrn || ''}</td>
+        <td class="label-cell" rowspan="4" style="width:10%; text-align:center;">양도자</td>
+        <td class="label-cell" style="width:22%;">① 상 호(법인명)</td>
+        <td style="width:33%;"></td>
+        <td class="label-cell" style="width:22%;">② 성 명(대표자)</td>
+        <td>${esc(f.transferor_name)}</td>
       </tr>
       <tr>
-        <td class="label-cell">사업자등록번호</td><td>${f.transferee_biz_no || ''}</td>
-        <td class="label-cell">주소</td><td>${f.transferee_address || ''} (전화: ${f.transferee_phone || ''})</td>
+        <td class="label-cell">③ 사업자등록번호</td>
+        <td>${esc(f.transferor_biz_no)}</td>
+        <td class="label-cell">④ 주민등록번호</td>
+        <td>${esc(f.transferor_rrn)}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">⑤ 사업장 소재지</td>
+        <td colspan="3">(전화번호: ${esc(f.transferor_phone)})</td>
+      </tr>
+      <tr>
+        <td class="label-cell">⑥ 주 소</td>
+        <td colspan="3">${esc(f.transferor_address)} (전화번호: ${esc(f.transferor_phone)})</td>
       </tr>
     </table>
 
-    <p class="text-sm" style="font-weight:700; margin:14px 0 4px;">국세환급금명세서</p>
     <table class="print-table">
-      <tr><th>세목</th><th>납부기한</th><th>계</th><th>내국세</th><th>교육세</th><th>가산금</th><th>국세환급가산금</th></tr>
-      ${itemsRowsHtml(f.refund_items)}
+      <tr>
+        <td class="label-cell" rowspan="4" style="width:10%; text-align:center;">양수자</td>
+        <td class="label-cell" style="width:22%;">① 상 호(법인명)</td>
+        <td style="width:33%;"></td>
+        <td class="label-cell" style="width:22%;">② 성 명(대표자)</td>
+        <td>${esc(f.transferee_name)}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">③ 사업자등록번호</td>
+        <td>${esc(f.transferee_biz_no)}</td>
+        <td class="label-cell">④ 주민등록번호</td>
+        <td>${esc(f.transferee_rrn)}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">⑤ 사업장 소재지</td>
+        <td colspan="3">(전화번호: ${esc(f.transferee_phone)})</td>
+      </tr>
+      <tr>
+        <td class="label-cell">⑥ 주 소</td>
+        <td colspan="3">${esc(f.transferee_address)} (전화번호: ${esc(f.transferee_phone)})</td>
+      </tr>
     </table>
 
-    <p class="text-sm" style="font-weight:700; margin:14px 0 4px;">양도하려는 금액</p>
     <table class="print-table">
-      <tr><th>세목</th><th>납부기한</th><th>계</th><th>내국세</th><th>교육세</th><th>가산금</th><th>국세환급가산금</th></tr>
-      ${itemsRowsHtml(f.transfer_amount_items)}
+      <tr>
+        <td class="label-cell" rowspan="5" style="width:10%; text-align:center;">국세환급금<br>명세서</td>
+        <th>세목</th><th>납부기한</th><th>계</th><th>내국세</th><th>교육세</th><th>가산금</th><th>국세환급<br>가산금</th>
+      </tr>
+      ${refundItemRows(f.refund_items, 3)}
+      <tr>
+        <td colspan="2" style="text-align:center; font-weight:700;">계</td>
+        <td colspan="5" style="font-weight:700;">${won(itemsTotal(f.refund_items))}</td>
+      </tr>
     </table>
+
+    <table class="print-table">
+      <tr>
+        <td class="label-cell" rowspan="5" style="width:10%; text-align:center;">양도하려는<br>금액</td>
+        <th>세목</th><th>납부기한</th><th>계</th><th>내국세</th><th>교육세</th><th>가산금</th><th>국세환급<br>가산금</th>
+      </tr>
+      ${refundItemRows(f.transfer_amount_items, 3)}
+      <tr>
+        <td colspan="2" style="text-align:center; font-weight:700;">계</td>
+        <td colspan="5" style="font-weight:700;">${won(itemsTotal(f.transfer_amount_items))}</td>
+      </tr>
+    </table>
+
+    <p class="print-note" style="margin-top:10px;">
+      ※ 가산금은 구 국세기본법(법률 제16097호로 일부개정되기 전의 것을 말합니다) 제2조제5호에 따른
+      가산금으로 2020년 1월 1일 전 납세의무 분에 적용됩니다.
+    </p>
 
     <p class="print-declaration">
-      ${f.transferor_name || '(양도자)'}의 국세환급금(국세환급가산금 포함) 등을 ${f.transferee_name || '(양수자)'}에게
-      양도하고 「국세기본법」 제53조 및 같은 법 시행령 제43조의4제1항에 따라 위와 같이 요구합니다.
+      (${esc(f.transferor_name)})의 국세환급금(국세환급가산금 포함) 등을 (${esc(f.transferee_name)})에게
+      양도하려고 「국세기본법」 제53조 및 같은 법 시행령 제43조의4제1항에 따라 위와 같이 요구합니다.
     </p>
 
     <div class="text-center" style="margin-bottom:14px;">
@@ -132,13 +183,33 @@ function render(row, f) {
 
     <div class="print-footer-office">세무서장 귀하</div>
 
-    <p class="print-note">
-      첨부서류: 양도인의 인감증명서 또는 본인서명사실확인서 1부 / 신고인 신분증 사본 1부 (대리인 신청시 위임장 등 추가)<br>
+    <table class="print-table" style="margin-top:14px;">
+      <tr>
+        <td class="label-cell" style="width:14%;">첨부서류</td>
+        <td style="font-size:11.5px; line-height:1.7;">
+          1. 양도인의 인감증명서 또는 본인서명사실확인서 1부<br>
+          2. 신고인 신분증 사본 1부<br>
+          3. 위임장 원본 1부<br>
+          4. 위임받은 자의 신분증 사본 1부<br>
+          ※ 제2호부터 제4호까지의 서류는 대리인이 신청하는 경우에만 제출합니다.
+        </td>
+        <td class="label-cell" style="width:12%; text-align:center;">수수료<br>없음</td>
+      </tr>
+    </table>
+
+    <p class="print-note" style="text-align:right; margin-top:10px;">210㎜×297㎜[백상지(80g/㎡) 또는 중질지(80g/㎡)]</p>
+
+    <p class="print-note" style="margin-top:16px; border-top:1px dashed #999; padding-top:8px;">
       접수번호: ${row.reception_number} / 처리상태: ${row.status} / 시스템 출력일시: ${new Date().toLocaleString('ko-KR')}<br>
       ※ 본 출력물은 온라인 동의서 시스템에서 생성된 참고용 서식입니다. 최종 법적 효력은 관할 세무서 확인 절차에 따릅니다.
     </p>
   `;
 }
+
+document.getElementById('pdf-download-btn').addEventListener('click', function () {
+  const filename = `국세환급금양도요구서_${currentReceptionNumber || '접수번호미상'}.pdf`;
+  downloadElementAsPdf(document.getElementById('print-root'), filename, this);
+});
 
 load();
 </script>

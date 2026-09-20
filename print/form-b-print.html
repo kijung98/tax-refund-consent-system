@@ -27,15 +27,10 @@
 <script>
 const params = new URLSearchParams(window.location.search);
 const submissionId = params.get('id');
-
-function requestTypeCheck(current, target) {
-  return current === target ? 'checked' : '';
-}
-function checkbox(checked) {
-  return `<span class="print-checkbox ${checked ? 'checked' : ''}"></span>`;
-}
-
 let currentReceptionNumber = '';
+
+function esc(v) { return v || ''; }
+function chk(cond) { return `<span class="print-checkbox ${cond ? 'checked' : ''}"></span>`; }
 
 async function load() {
   const root = document.getElementById('print-root');
@@ -52,89 +47,139 @@ async function load() {
   }
 }
 
-document.getElementById('pdf-download-btn').addEventListener('click', function () {
-  const filename = `공동명의특례신청서_${currentReceptionNumber || '접수번호미상'}.pdf`;
-  downloadElementAsPdf(document.getElementById('print-root'), filename, this);
-});
-
 function render(row, f) {
-  const today = new Date();
+  const today = new Date(row.created_at);
   const rt = f.request_type || '';
+  const isChange = rt.startsWith('변경');
 
   document.getElementById('print-root').innerHTML = `
-    <div class="print-doc-no">■ 종합부동산세법 시행규칙 [별지 제2호의7서식] (접수번호: ${row.reception_number})</div>
+    <div class="print-doc-no">■ 종합부동산세법 시행규칙 [별지 제2호의7서식] &lt;개정 2024. 3. 22.&gt;</div>
     <div class="print-title">(${today.getFullYear()}년도)종합부동산세 공동명의 1주택자 특례 (변경)신청서</div>
+    <p class="print-note" style="margin-bottom:10px;">
+      ※ 작성방법을 읽고 작성해 주시기 바라며, [ ]에는 해당되는 곳에 √표를 합니다.
+    </p>
 
     <table class="print-table">
       <tr>
-        <td class="label-cell" rowspan="2">신청인</td>
-        <td class="label-cell">성명</td><td>${f.applicant_name || ''}</td>
-        <td class="label-cell">주민등록번호</td><td>${f.applicant_rrn || ''}</td>
+        <td class="label-cell" rowspan="2" style="width:12%; text-align:center;">신청인</td>
+        <td class="label-cell" style="width:14%;">성명</td>
+        <td style="width:36%;">${esc(f.applicant_name)}</td>
+        <td class="label-cell" style="width:14%;">주민등록번호</td>
+        <td>${esc(f.applicant_rrn)}</td>
       </tr>
       <tr>
-        <td class="label-cell">주소</td><td colspan="3">${f.applicant_address || ''} (전화: ${f.applicant_phone || ''})</td>
+        <td class="label-cell">주소</td>
+        <td colspan="3">${esc(f.applicant_address)} (☎: ${esc(f.applicant_phone)})</td>
       </tr>
     </table>
 
     <table class="print-table">
       <tr>
-        <td class="label-cell">① 신청유형</td>
+        <td class="label-cell" style="width:14%;">① 신청유형</td>
         <td>
-          ${checkbox(requestTypeCheck(rt,'최초'))} 최초　
-          ${checkbox(rt.startsWith('변경'))} 변경 (지분율 변경${checkbox(rt==='변경_지분율')}, 납세의무자 변경${checkbox(rt==='변경_납세의무자')})　
-          ${checkbox(requestTypeCheck(rt,'특례취소'))} 특례 취소
+          ${chk(rt === '최초')} 최초　　
+          ${chk(isChange)} 변경 (지분율 변경${chk(rt === '변경_지분율')},
+            납세의무자 변경${chk(rt === '변경_납세의무자')})　　
+          ${chk(rt === '특례취소')} 특례 취소
         </td>
       </tr>
     </table>
 
     <table class="print-table">
       <tr>
-        <td class="label-cell">② 납세의무자<br>(지분율이 같거나 높은 사람)</td><td>${f.taxpayer_name || ''}</td>
-        <td class="label-cell">주민등록번호</td><td>${f.taxpayer_rrn || ''}</td>
+        <td class="label-cell" style="width:26%;">② 납세의무자<br>(지분을이 같거나 높은 사람)</td>
+        <td style="width:24%;">${esc(f.taxpayer_name)}</td>
+        <td class="label-cell" style="width:22%;">주민등록번호</td>
+        <td>${esc(f.taxpayer_rrn)}</td>
       </tr>
       <tr>
-        <td class="label-cell">③ 납세의무자의 배우자</td><td>${f.spouse_name || ''}</td>
-        <td class="label-cell">주민등록번호</td><td>${f.spouse_rrn || ''}</td>
+        <td class="label-cell">③ 납세의무자의 배우자</td>
+        <td>${esc(f.spouse_name)}</td>
+        <td class="label-cell">주민등록번호</td>
+        <td>${esc(f.spouse_rrn)}</td>
       </tr>
     </table>
 
     <table class="print-table">
       <tr><th colspan="2">점검항목</th></tr>
-      <tr><td>1. 납세의무자의 공동주택에 대한 지분율이 배우자보다 높거나 같아야 합니다.</td><td style="width:60px; text-align:center;">${checkbox(f.check_ownership_ratio)}</td></tr>
-      <tr><td>2. 납세의무자의 배우자에게 공동소유 주택 외에 다른 주택(부속토지 포함)이 없어야 합니다.</td><td style="text-align:center;">${checkbox(f.check_spouse_no_other_house)}</td></tr>
-      <tr><td>3. 납세의무자의 배우자를 제외한 다른 세대원이 소유한 주택(부속토지 포함)이 없어야 합니다.</td><td style="text-align:center;">${checkbox(f.check_household_no_other_house)}</td></tr>
+      <tr>
+        <td>1. 납세의무자의 공동주택에 대한 지분율이 배우자보다 높거나 같아야 합니다.</td>
+        <td style="width:50px; text-align:center;">${chk(f.check_ownership_ratio)}</td>
+      </tr>
+      <tr>
+        <td>2. 납세의무자의 배우자에게 공동소유 주택 외에 다른 주택(부속토지 포함)이 없어야 합니다.</td>
+        <td style="text-align:center;">${chk(f.check_spouse_no_other_house)}</td>
+      </tr>
+      <tr>
+        <td>3. 납세의무자의 배우자를 제외한 다른 세대원이 소유한 주택(부속토지 포함)이 없어야 합니다.</td>
+        <td style="text-align:center;">${chk(f.check_household_no_other_house)}</td>
+      </tr>
     </table>
+    <p class="print-note" style="margin-top:6px;">
+      ※ 공동명의 1주택자 특례를 적용받기 위해서는 점검항목 요건을 모두 충족해야 합니다.
+      요건을 충족하는 경우 [ ]에 √표를 합니다.
+    </p>
 
     <p class="print-declaration">
       「종합부동산세법」 제10조의2 및 같은 법 시행령 제5조의2에 따라 위와 같이 공동명의의 1주택자
       납세의무 등에 관한 특례 적용을 (변경)신청합니다.<br>
       위의 신청사항에 대해 배우자의 동의를 받아 공동명의 특례를 신청했음을 확인합니다.
-      ${checkbox(f.consent_confirmed)} 확인함
+      ${chk(f.consent_confirmed)} 확인함
     </p>
 
+    <div class="text-center" style="margin-bottom:14px;">
+      ${today.getFullYear()}년　${today.getMonth()+1}월　${today.getDate()}일
+    </div>
+
     <div class="print-sign-block">
-      <div>
-        <div class="text-center" style="margin-bottom:14px;">
-          ${new Date(row.created_at).getFullYear()}년　${new Date(row.created_at).getMonth()+1}월　${new Date(row.created_at).getDate()}일
-        </div>
-        <div class="print-sign-line">
-          신청인
-          ${f.applicant_signature
-            ? `<img class="print-sign-img" src="${f.applicant_signature}">`
-            : '&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)&nbsp;&nbsp;&nbsp;&nbsp;'}
-        </div>
+      <div class="print-sign-line">
+        신청인
+        ${f.applicant_signature
+          ? `<img class="print-sign-img" src="${f.applicant_signature}">`
+          : '&nbsp;&nbsp;&nbsp;&nbsp;(서명 또는 인)&nbsp;&nbsp;&nbsp;&nbsp;'}
       </div>
     </div>
 
     <div class="print-footer-office">세무서장 귀하</div>
 
-    <p class="print-note">
-      신청인 제출서류: 혼인관계증명서 1부 (원본 대조 필요) / 담당 공무원 확인사항: 부부 공동명의 주택의 건물등기사항증명서<br>
+    <table class="print-table" style="margin-top:14px;">
+      <tr>
+        <td class="label-cell" style="width:22%;">신청인 제출서류</td>
+        <td>혼인관계증명서 1부</td>
+        <td class="label-cell" rowspan="2" style="width:12%; text-align:center;">수수료<br>없음</td>
+      </tr>
+      <tr>
+        <td class="label-cell">담당 공무원 확인사항</td>
+        <td>부부 공동명의 주택의 건물등기사항증명서</td>
+      </tr>
+    </table>
+
+    <div style="border:1px solid #000; margin-top:14px; padding:10px 12px; font-size:11px; line-height:1.7;">
+      <div style="font-weight:700; text-align:center; border-bottom:1px solid #000; margin-bottom:8px; padding-bottom:4px;">작성방법</div>
+      ※ 이 서식은 최초로 종합부동산세 공동명의 1주택자 특례 적용을 신청하거나 신청한 사항에 변동사항이 있는 경우 작성합니다.<br>
+      1. ① 신청유형: 1세대 1주택 특례 적용을 처음 신청하는 경우에는 "최초", 최초 신청 후 지분율이 변경되거나 납세의무자를 변경하는
+      경우에는 "변경", 1세대 1주택 특례적용 신청 후 부부 공동명의 각각의 주택으로 환원하여 적용받으려는 경우에는 "특례 취소"의
+      [ ]에 √ 표시를 합니다.<br>
+      2. ② 납세의무자: 부부 중 주택에 대한 지분율이 높은 사람을 적으며, 지분율이 같은 경우에는 공동 소유자간 합의에 따라
+      정한 사람의 성명을 적습니다.<br>
+      3. ③ 납세의무자의 배우자: ② 납세의무자의 배우자의 성명을 적습니다.<br>
+      ※ 납세의무자가 1주택과 대체취득 주택, 상속주택, 지방 저가주택을 소유하고 있는 경우에는 1세대 1주택자 판단 시 주택 수 산정 제외
+      신청서를 추가로 제출해야 합니다.
+    </div>
+
+    <p class="print-note" style="text-align:right; margin-top:10px;">210㎜×297㎜[백상지 80g/㎡ 또는 중질지 80g/㎡]</p>
+
+    <p class="print-note" style="margin-top:12px; border-top:1px dashed #999; padding-top:8px;">
       접수번호: ${row.reception_number} / 처리상태: ${row.status} / 시스템 출력일시: ${new Date().toLocaleString('ko-KR')}<br>
       ※ 본 출력물은 온라인 동의서 시스템에서 생성된 참고용 서식입니다. 최종 법적 효력은 관할 세무서 확인 절차에 따릅니다.
     </p>
   `;
 }
+
+document.getElementById('pdf-download-btn').addEventListener('click', function () {
+  const filename = `공동명의특례신청서_${currentReceptionNumber || '접수번호미상'}.pdf`;
+  downloadElementAsPdf(document.getElementById('print-root'), filename, this);
+});
 
 load();
 </script>
