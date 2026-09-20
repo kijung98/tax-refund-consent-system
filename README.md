@@ -20,7 +20,8 @@ tax-refund-consent/
 ├── sql/
 │   ├── schema.sql          Supabase(Postgres) 테이블 생성 스크립트 (신규 설치용)
 │   ├── migration-001-admin-auth.sql   기존 설치본을 관리자인증 RLS로 전환 (기존 설치자용)
-│   └── migration-002-encrypt-rrn.sql  기존 설치본의 주민등록번호를 암호화로 전환 (기존 설치자용)
+│   ├── migration-002-encrypt-rrn.sql  기존 설치본의 주민등록번호를 암호화로 전환 (기존 설치자용)
+│   └── migration-003-fix-pgcrypto-schema.sql  pgp_sym_encrypt 인식 오류 수정 (해당시)
 ├── css/
 │   ├── common.css          공통 스타일
 │   ├── mobile.css          납세자 모바일 화면
@@ -262,6 +263,15 @@ API로는 관리자로 로그인해도 절대 조회할 수 없도록 잠가뒀�
 처음부터 다시 실행하지 마시고, `sql/migration-002-encrypt-rrn.sql` 파일을 열어서
 2단계의 키 값을 바꾼 뒤 파일 전체를 실행하세요. 기존에 저장돼 있던 주민등록번호도
 이 과정에서 함께 암호화로 전환되며, 데이터는 유지됩니다.
+
+### 문제 해결: "function pgp_sym_encrypt(text, text) does not exist" 오류
+
+제출 시 이 오류가 뜨면, Supabase가 암호화 함수(pgcrypto)를 `public` 스키마가
+아니라 `extensions` 스키마에 설치해둔 경우입니다. `sql/migration-003-fix-pgcrypto-schema.sql`
+파일을 SQL Editor에서 실행하면 해결됩니다 (테이블·데이터는 건드리지 않고
+문제가 된 함수 4개만 다시 만듭니다 - 몇 번을 실행해도 안전합니다).
+`schema.sql`은 이미 이 문제가 반영된 최신 버전이므로, 새로 설치하시는 분은
+이 마이그레이션을 실행할 필요가 없습니다.
 
 ### 관리자 화면에서 주민등록번호가 보이는 방식
 상세보기 화면에서는 주민등록번호가 기본적으로 `900101-1●●●●●●` 형태로 가려져

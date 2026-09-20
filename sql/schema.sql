@@ -181,7 +181,7 @@ create or replace function submit_form_b(payload jsonb)
 returns text
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = public, extensions, pg_temp
 as $$
 declare
   v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
@@ -230,7 +230,7 @@ create or replace function submit_form_a(payload jsonb)
 returns text
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = public, extensions, pg_temp
 as $$
 declare
   v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
@@ -279,7 +279,7 @@ create or replace function submit_form_c(payload jsonb)
 returns text
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = public, extensions, pg_temp
 as $$
 declare
   v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
@@ -340,7 +340,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = public, extensions, pg_temp
 as $$
 declare
   v_key text := (select key_value from app_secrets where key_name = 'encryption_key');
