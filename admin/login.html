@@ -59,7 +59,8 @@ async function doLogin() {
   const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
   if (error) {
-    errBox.textContent = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.';
+    errBox.innerHTML = '로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.'
+      + `<div style="margin-top:6px; font-size:11px; color:#999;">(개발 확인용) ${error.message || error} / status: ${error.status || '-'}</div>`;
     errBox.style.display = 'block';
     btn.disabled = false;
     btn.textContent = '로그인';
