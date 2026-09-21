@@ -21,7 +21,9 @@ tax-refund-consent/
 │   ├── schema.sql          Supabase(Postgres) 테이블 생성 스크립트 (신규 설치용)
 │   ├── migration-001-admin-auth.sql   기존 설치본을 관리자인증 RLS로 전환 (기존 설치자용)
 │   ├── migration-002-encrypt-rrn.sql  기존 설치본의 주민등록번호를 암호화로 전환 (기존 설치자용)
-│   └── migration-003-fix-pgcrypto-schema.sql  pgp_sym_encrypt 인식 오류 수정 (해당시)
+│   ├── migration-003-fix-pgcrypto-schema.sql  pgp_sym_encrypt 인식 오류 수정 (해당시)
+│   ├── migration-004-temp-disable-admin-auth.sql  🧪 관리자 로그인 임시 비활성화(테스트용)
+│   └── migration-005-restore-admin-auth.sql       migration-004 원복(운영 전 필수)
 ├── css/
 │   ├── common.css          공통 스타일
 │   ├── mobile.css          납세자 모바일 화면
@@ -226,6 +228,26 @@ tax-refund-consent/
 `schema.sql`을 처음부터 다시 실행하지 마시고 `sql/migration-001-admin-auth.sql` 파일만
 Supabase SQL Editor에서 실행해 주세요 (기존 접수 데이터가 유지됩니다). 새로 설치하시는
 분은 `schema.sql` 한 번만 실행하면 로그인 정책까지 함께 적용됩니다.
+
+### 🧪 테스트 모드 (로그인 임시 비활성화) — 개발 중에만 사용
+
+로그인 설정을 나중에 마무리하고 싶고, 지금은 화면(목록/상세/A4출력)만 먼저
+확인해보고 싶다면 아래 두 파일을 실행/배포하면 로그인 없이 관리자 화면에
+바로 들어갈 수 있습니다.
+
+1. `sql/migration-004-temp-disable-admin-auth.sql` 을 Supabase SQL Editor에서 실행
+2. `js/auth-guard.js` 파일의 `ADMIN_AUTH_DISABLED_TEMP` 값이 `true`인 채로 배포
+   (이미 `true`로 되어 있는 버전을 드렸다면 그대로 두시면 됩니다)
+
+이 상태에서는 관리자 화면 상단에 **"⚠️ 테스트 모드: 로그인 비활성화됨"** 배너가
+뜨고, 누구든 그 사이트 주소를 알면 로그인 없이 데이터(주민등록번호 포함)를
+볼 수 있습니다. **테스트 데이터로만 확인하시고, 실제 납세자에게 QR/링크를
+공유하기 전에는 반드시 아래로 원복하세요:**
+
+1. `sql/migration-005-restore-admin-auth.sql` 을 Supabase SQL Editor에서 실행
+2. `js/auth-guard.js` 의 `ADMIN_AUTH_DISABLED_TEMP` 값을 `false`로 바꿔서 다시 배포
+   (DB만 원복하고 이 값을 안 바꾸면, 화면은 로그인 없이 들어가지지만 데이터가
+   하나도 안 보이는 상태가 됩니다 — 두 가지를 항상 같이 바꿔야 합니다)
 
 ---
 

@@ -22,7 +22,10 @@
     </div>
     <div class="field">
       <label class="required">비밀번호</label>
-      <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password">
+      <div style="display:flex; gap:8px;">
+        <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password" style="flex:1;">
+        <button type="button" class="btn btn-secondary btn-sm" id="toggle-password-btn" style="flex-shrink:0;">보기</button>
+      </div>
     </div>
 
     <button class="btn btn-primary btn-block" id="login-btn">로그인</button>
@@ -38,6 +41,13 @@
 <script>
 document.getElementById('login-btn').addEventListener('click', doLogin);
 document.getElementById('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+document.getElementById('toggle-password-btn').addEventListener('click', function () {
+  const pw = document.getElementById('password');
+  const show = pw.type === 'password';
+  pw.type = show ? 'text' : 'password';
+  this.textContent = show ? '숨기기' : '보기';
+});
 
 async function doLogin() {
   const btn = document.getElementById('login-btn');
