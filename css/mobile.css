@@ -30,7 +30,7 @@
 .progress-bar-fill { height: 100%; background: #fff; border-radius: 3px; transition: width .25s ease; }
 .step-label { font-size: 12px; color: rgba(255,255,255,0.9); margin-top: 8px; text-align: center; }
 
-.step-content { padding: 24px 20px 110px; }
+.step-content { padding: 24px 20px 140px; }
 .step-panel { display: none; }
 .step-panel.active { display: block; }
 
@@ -42,12 +42,24 @@
 .step-nav-inner {
   width: 100%; max-width: 480px;
   background: #fff; border-top: 1px solid var(--color-border);
-  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-  display: flex; gap: 10px;
+  padding: 8px 20px calc(12px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 6px;
   pointer-events: auto;
 }
-.step-nav-inner .btn { flex: 1; }
-.step-nav-inner .btn-prev { flex: 0 0 30%; }
+.step-nav-buttons { display: flex; gap: 10px; }
+.step-nav-buttons .btn { flex: 1; }
+.step-nav-buttons .btn-prev { flex: 0 0 30%; }
+
+/* 하단 서식선택 서브링크 - 스크롤과 무관하게 항상 노출 */
+.step-nav-back-link {
+  display: block; text-align: center; font-size: 12px;
+  color: var(--color-text-muted); text-decoration: none;
+  background: none; border: none; padding: 2px 0 4px; cursor: pointer;
+  font-family: inherit; line-height: 1.3;
+}
+.step-nav-back-link:hover, .step-nav-back-link:active {
+  color: var(--color-primary); text-decoration: underline;
+}
 
 /* 전자서명 캔버스 */
 .signature-pad-wrap {

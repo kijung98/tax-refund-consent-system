@@ -17,7 +17,7 @@
 <div class="mobile-container">
 
   <div class="mobile-header">
-    <button type="button" class="header-back-link" id="back-to-select-btn">← 서식 선택</button>
+    <button type="button" class="header-back-link back-to-select-btn">← 서식 선택</button>
     <h1>공동명의 1주택자 특례신청서</h1>
     <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:16.6%;"></div></div>
     <div class="step-label" id="step-label">1 / 6 단계 - 신청유형</div>
@@ -204,9 +204,12 @@
 
   <div class="step-nav">
     <div class="step-nav-inner">
-      <button type="button" class="btn btn-secondary btn-prev" id="prev-btn" style="display:none;">이전</button>
-      <button type="button" class="btn btn-primary btn-block" id="next-btn">다음</button>
-      <button type="button" class="btn btn-primary btn-block" id="submit-btn" style="display:none;">제출하기</button>
+      <button type="button" class="step-nav-back-link back-to-select-btn">← 서식 선택으로 돌아가기</button>
+      <div class="step-nav-buttons">
+        <button type="button" class="btn btn-secondary btn-prev" id="prev-btn" style="display:none;">이전</button>
+        <button type="button" class="btn btn-primary btn-block" id="next-btn">다음</button>
+        <button type="button" class="btn btn-primary btn-block" id="submit-btn" style="display:none;">제출하기</button>
+      </div>
     </div>
   </div>
 </div>
@@ -479,13 +482,16 @@ if (restoredDraft) {
 //  내용은 이미 채워져 있으므로 "다음"만 눌러가면 금방 이어서 작성할 수 있다)
 goToStep(1);
 
-// "← 서식 선택" 클릭 시: 1단계면 바로 이동, 2단계 이후면 데이터 유실 경고 후 이동
-document.getElementById('back-to-select-btn').addEventListener('click', () => {
-  if (currentStep === 1 || confirm('입력하신 내용이 모두 사라집니다.\n정말 서식 선택 화면으로 돌아가시겠습니까?')) {
-    unloadGuard.markClean();
-    clearDraftFromSession(DRAFT_KEY);
-    window.location.href = 'index.html';
-  }
+// "← 서식 선택" 클릭 시(상단·하단 두 곳 모두 대응):
+//   1단계면 바로 이동, 2단계 이후면 데이터 유실 경고 후 이동
+document.querySelectorAll('.back-to-select-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (currentStep === 1 || confirm('입력하신 내용이 모두 사라집니다.\n정말 서식 선택 화면으로 돌아가시겠습니까?')) {
+      unloadGuard.markClean();
+      clearDraftFromSession(DRAFT_KEY);
+      window.location.href = 'index.html';
+    }
+  });
 });
 </script>
 </body>
