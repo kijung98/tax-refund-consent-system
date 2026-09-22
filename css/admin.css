@@ -5,7 +5,8 @@
 .admin-layout { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
 .admin-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
 .admin-topbar h1 { margin: 0; font-size: 22px; }
-.admin-topbar .actions { display: flex; gap: 8px; }
+.admin-topbar .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.detail-header .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 .search-panel {
   background: #fff; border-radius: var(--radius); padding: 18px;
