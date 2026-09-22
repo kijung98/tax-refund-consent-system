@@ -129,11 +129,11 @@ function render(row, f) {
 
     <table class="print-table">
       <tr>
-        <td class="label-cell" rowspan="5" style="width:9%; text-align:center;">국세환급금<br>내역</td>
+        <td class="label-cell" rowspan="4" style="width:9%; text-align:center;">국세환급금<br>내역</td>
         <th>세목</th><th>연도·기분</th><th>계</th><th>내국세</th>
         <th>농어촌특별세<br>교육세</th><th>가산금</th><th>환급가산금</th>
       </tr>
-      ${refundRows(f.refund_items, 3)}
+      ${refundRows(f.refund_items, 2)}
       <tr>
         <td colspan="2" style="text-align:center; font-weight:700;">계</td>
         <td colspan="5" style="font-weight:700;">${won(refundTotal)}</td>
@@ -142,11 +142,11 @@ function render(row, f) {
 
     <table class="print-table">
       <tr>
-        <td class="label-cell" rowspan="5" style="width:9%; text-align:center;">충당청구<br>(동의)내역</td>
+        <td class="label-cell" rowspan="4" style="width:9%; text-align:center;">충당청구<br>(동의)내역</td>
         <th>전자납부번호</th><th>계</th><th>내국세</th>
         <th>농어촌특별세<br>교육세</th><th>가산금</th><th>비고</th>
       </tr>
-      ${offsetRows(f.offset_items, 3)}
+      ${offsetRows(f.offset_items, 2)}
       <tr>
         <td style="text-align:center; font-weight:700;">계</td>
         <td colspan="4" style="font-weight:700;">${won(offsetTotal)}</td>
@@ -158,14 +158,13 @@ function render(row, f) {
       <tr><td class="label-cell" style="width:12%;">잔액</td><td>${won(balance)}</td></tr>
     </table>
 
-    <p class="print-note" style="margin-top:10px;">
-      ※ 가산금은 구 국세기본법(법률 제16097호로 일부개정되기 전의 것을 말합니다) 제2조제5호에 따른
-      가산금으로 2020년 1월 1일 전 납세의무 분에 적용됩니다.
+    <p class="print-note" style="margin-top:4px;">
+      ※ 가산금은 구 국세기본법 제2조제5호에 따른 가산금으로 2020년 1월 1일 전 납세의무 분에 적용됩니다.
     </p>
 
     <p class="print-declaration">「국세기본법」 제51조에 따라 위와 같이 충당하여 주시기 바랍니다.</p>
 
-    <div class="text-center" style="margin-bottom:14px;">
+    <div class="text-center" style="margin-bottom:4px;">
       ${today.getFullYear()}년　${today.getMonth()+1}월　${today.getDate()}일
     </div>
 
@@ -178,7 +177,7 @@ function render(row, f) {
       </div>
     </div>
 
-    <table class="print-table" style="margin-top:14px;">
+    <table class="print-table" style="margin-top:6px;">
       <tr>
         <td class="label-cell" style="width:14%;">대리인</td>
         <td style="width:36%;">${esc(f.agent_name)} ${f.agent_name ? '(관계·직책: ' + esc(f.agent_relation) + ')' : ''}</td>
@@ -189,21 +188,20 @@ function render(row, f) {
 
     <div class="print-footer-office">세무서장 귀하</div>
 
-    <table class="print-table" style="margin-top:14px;">
+    <table class="print-table" style="margin-top:6px;">
       <tr>
         <td class="label-cell" style="width:14%;">첨부서류</td>
-        <td style="font-size:11.5px; line-height:1.7;">
-          1. 청구인 신분증 사본 1부<br>
-          2. 위임장 원본 1부<br>
+        <td style="font-size:10px; line-height:1.5;">
+          1. 청구인 신분증 사본 1부　2. 위임장 원본 1부<br>
           ※ 1번과 2번 서류는 대리인이 신청하는 경우에만 제출합니다.
         </td>
         <td class="label-cell" style="width:12%; text-align:center;">수수료<br>없음</td>
       </tr>
     </table>
 
-    <p class="print-note" style="text-align:right; margin-top:10px;">210㎜×297㎜[백상지(80g/㎡) 또는 중질지(80g/㎡)]</p>
+    <p class="print-note" style="text-align:right; margin-top:4px;">210㎜×297㎜[백상지(80g/㎡) 또는 중질지(80g/㎡)]</p>
 
-    <p class="print-note" style="margin-top:12px; border-top:1px dashed #999; padding-top:8px;">
+    <p class="print-note print-system-footer" style="margin-top:10px; border-top:1px dashed #999; padding-top:6px;">
       접수번호: ${row.reception_number} / 처리상태: ${row.status} / 시스템 출력일시: ${new Date().toLocaleString('ko-KR')}<br>
       ※ 본 출력물은 온라인 동의서 시스템에서 생성된 참고용 서식입니다. 최종 법적 효력은 관할 세무서 확인 절차에 따릅니다.
     </p>
